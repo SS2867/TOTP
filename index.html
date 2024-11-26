@@ -233,10 +233,11 @@
 
     function generateTOTP() {
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+        if (seed_input == ""){seed_input = "F";}
         if (document.getElementById("passcode").value){ passcode = document.getElementById("passcode").value;}
         const seed = decrypt(seed_input, passcode, validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
         const key = base32tohex(seed);
-        if(key.length > 8){
+        try{
             const epoch = Math.round(new Date().getTime() / 1000.0);
             const time = leftpad(dec2hex(Math.floor(epoch / 30)), 16, '0');
 
@@ -289,13 +290,15 @@
                 document.getElementById("totp_next").classList.remove('totp_active');
                 totp_next.style.fontSize = '0.65em'
             }
-        }else{ 
-            document.getElementById("totp").innerText = "- - - - - -";
-            document.getElementById("totp_prev").innerText = "- - - - - -";
-            document.getElementById("totp_next").innerText = "- - - - - -";
-            document.getElementById("progressBar").style.width = 0;
-            document.getElementById("totp_next").classList.remove('totp_active');
-            document.getElementById("totp_next").style.fontSize = '0.65em'
+        }catch(error){ 
+            if (error.message === "String of HEX type must be in byte increments"){
+                document.getElementById("totp").innerText = "- - - - - -";
+                document.getElementById("totp_prev").innerText = "- - - - - -";
+                document.getElementById("totp_next").innerText = "- - - - - -";
+                document.getElementById("progressBar").style.width = 0;
+                document.getElementById("totp_next").classList.remove('totp_active');
+                document.getElementById("totp_next").style.fontSize = '0.65em'
+            }else{throw error;}
         }
     }
 
