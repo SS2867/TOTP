@@ -181,6 +181,64 @@
       }
       return plainText.join(""); // Convert the array back to a string
     }
+
+    function encrypt(plainText, key, validChars = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~') {
+      // Ensure all characters in plainText are in validChars
+      for (let char of plainText) {
+        if (!validChars.includes(char)) {
+          throw new Error(`Invalid character in plaintext: ${char}`);
+        }
+      }
+
+      // Initialize the cipher text list
+      let cipherText = plainText.split('');
+      const txtlen = cipherText.length;
+      const opralen = Math.floor(0.1 * txtlen);
+
+      // Helper function to mimic Python's `%` behavior
+      const mod = (a, b) => ((a % b) + b) % b;
+
+      for (let index = 0; index < key.length; index++) {
+        let i = key.charCodeAt(index) - 32;
+
+        // Linear shifting using operation factors
+        for (let j = 0; j < cipherText.length; j++) {
+          cipherText[j] = validChars[mod(validChars.indexOf(cipherText[j]) + i + (index + 1) * (j + 2), validChars.length)];
+          if (j > 0) {
+            cipherText[j] = validChars[mod(
+              validChars.indexOf(cipherText[j]) + i + 
+              (index + 1 + validChars.indexOf(cipherText[j - 1]) + 32) * (j + 2),
+              validChars.length
+            )];
+          }
+        }
+
+        // Generate the operation factor temp from index
+        let temp = index;
+
+        // Exchange the positions of two characters depending on operation factors
+        for (let j = 0; j < 4 + Math.floor(plainText.length * 1.1); j++) {
+          const factorA = mod((temp ** 2 + opralen * temp), txtlen);
+          const factorB = mod((temp + 1 + key.charCodeAt(index)), txtlen);
+
+          // Swap the positions
+          [cipherText[factorA], cipherText[factorB]] = [cipherText[factorB], cipherText[factorA]];
+
+          temp += 1;
+        }
+      }
+
+      // Convert the list to string
+      return cipherText.join('');
+    }
+    function generateRandomString(length, chars=' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~') {
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * chars.length);
+            result += chars[randomIndex];
+        }
+        return result;
+    }
 </script>
 
 <script>
@@ -234,8 +292,9 @@
     function generateTOTP() {
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
-        if (document.getElementById("passcode").value){ passcode = document.getElementById("passcode").value;}
-        const seed = decrypt(seed_input, passcode, validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
+        if (document.getElementById("passcode").value){
+            passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);}
+        const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
         const key = base32tohex(seed);
         try{
             const epoch = Math.round(new Date().getTime() / 1000.0);
@@ -307,11 +366,12 @@
             navigator.clipboard.writeText(this.textContent);
         });
     }
+    passcodeSalt = generateRandomString(20);
     passcode = "";
     document.getElementById("passcode").addEventListener('blur', function() {
-        // 在输入框失去焦点时执行的操作
         if (document.getElementById("passcode").value){
-            passcode = document.getElementById("passcode").value;
+            passcodeSalt = generateRandomString(20);
+            passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);
             document.getElementById("passcode").value = "";
             document.getElementById("passcode").placeholder = "•".repeat(passcode.length);
         }
