@@ -292,8 +292,6 @@
     function generateTOTP() {
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
-        if (document.getElementById("passcode").value){
-            passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);}
         const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
         const key = base32tohex(seed);
         try{
@@ -375,6 +373,10 @@
             document.getElementById("passcode").value = "";
             document.getElementById("passcode").placeholder = "•".repeat(passcode.length);
         }
+    });
+    document.getElementById("passcode").addEventListener('input', function() {
+        passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);
+        if(passcode ===""){ document.getElementById("passcode").placeholder = "Enter Passcode (if any)"; }
     });
 
     document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
