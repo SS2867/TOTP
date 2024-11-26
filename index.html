@@ -349,9 +349,9 @@
             }
         }catch(error){ 
             if (error.message === "String of HEX type must be in byte increments"){
-                document.getElementById("totp").innerText = "- - - - - -";
-                document.getElementById("totp_prev").innerText = "- - - - - -";
-                document.getElementById("totp_next").innerText = "- - - - - -";
+                document.getElementById("totp").innerText = "------";
+                document.getElementById("totp_prev").innerText = "------";
+                document.getElementById("totp_next").innerText = "------";
                 document.getElementById("progressBar").style.width = 0;
                 document.getElementById("totp_next").classList.remove('totp_active');
                 document.getElementById("totp_next").style.fontSize = '0.65em'
