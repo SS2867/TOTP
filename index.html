@@ -8,6 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -89,6 +90,17 @@
             color: white;
             transition: width 0.2s, background 0.6s;
         }
+        .footer {
+            margin-top: auto;
+            color: #c0c0c0;
+            text-align: center;
+            padding: 10px;
+            width: 90%;
+        }
+        .footer a {
+            color: #76c7c0;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -110,6 +122,10 @@
         <span style="width: 20px"></span>
         <span style="width: 100px" class="totp totp_nearby" id="totp_next"></span>
     </div>
+
+</div>
+<div class="footer">
+    Built by <a href="https://github.com/SS2867">SS2867</a>. Source on <a href="https://github.com/SS2867/TOTP">Github</a>.
 </div>
 
 <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha.js"></script> -->
