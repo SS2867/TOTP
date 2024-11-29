@@ -73,7 +73,7 @@
             }
         }
         .progress-container {
-            width: 100%;
+            width: 90%;
             background: #e0e0e0;
             border-radius: 5px;
             overflow: hidden;
@@ -107,16 +107,18 @@
 <body>
 
 <div class="container">
-    <h1>Google TOTP Generator</h1>
+    <h1>TOTP Generator</h1>
     <input type="text" id="seed" placeholder="Enter Seed" />
     <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
     <button onclick="generateTOTP()">Generate TOTP</button>
     
-    <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <span id="progress-text" style="width: 10%; font-size: 0.4em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        
         <span style="width: 100px" class="totp totp_nearby" id="totp_prev"></span>
         <span style="width: 20px"></span>
         <span style="width: 200px" class="totp" id="totp"></span>
@@ -324,6 +326,7 @@
             progressBar.value = (1-Math.ceil(epoch % 30)/30)*100;
             progressBar.style.width = progressBar.value+"%"
             progressBar.style.setProperty('background', progressBar.value<20 ? '#f36831' : '#76c7c0'); 
+            document.getElementById("progress-text").innerText = (30- epoch%30)+"s"
             if(progressBar.value<20){
                 totp_next = document.getElementById("totp_next");
                 totp_current = document.getElementById("totp")
@@ -369,6 +372,7 @@
                 document.getElementById("totp").innerText = "------";
                 document.getElementById("totp_prev").innerText = "------";
                 document.getElementById("totp_next").innerText = "------";
+                document.getElementById("progress-text").innerText = "--"
                 document.getElementById("progressBar").style.width = 0;
                 document.getElementById("totp_next").classList.remove('totp_active');
                 document.getElementById("totp_next").style.fontSize = '0.65em'
