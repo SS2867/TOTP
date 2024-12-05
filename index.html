@@ -31,9 +31,13 @@
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        input{
+            width: 94%;
+        }
         .totp_container {
             margin-top: 10px;
             font-size: 1.5em;
+            height: 40px;
             color: #333;
         }
         .totp {
@@ -41,6 +45,7 @@
             margin-top: 10px;
             color: #333;
             border-radius: 5px;
+            position:absolute;
             cursor: pointer;
         }
         .totp:hover {
@@ -50,16 +55,16 @@
             background-color: #c0c0c0;
         }
         .totp_nearby {
-            font-size: 0.65em;
+            font-size: 0.63em;
             margin-top: 10px;
             color: #b7b7b7;
             text-decoration: line-through;
         }
         .totp_transform{
-            transition: transform 0.4s ease, font-size 0.4s ease;
+            transition: transform 0.4s ease, font-size 0.4s ease, width 0.4s ease;
         }
         .totp_active{
-            font-size: 0.8em;
+            font-size: 0.75em;
             color: #cb63ff;
             text-decoration: none;
             animation: blink 1s infinite
@@ -102,15 +107,25 @@
             color: #76c7c0;
             text-decoration: none;
         }
+        .span{
+            white-space: pre;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>TOTP Generator</h1>
-    <input type="text" id="seed" placeholder="Enter Seed" />
+    <input type="text" id="seed" placeholder="Enter Secret Seed" />
     <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
-    <button onclick="generateTOTP()">Generate TOTP</button>
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <div class="slider-container" >
+            <span>Digits: </span><span id="digitsValue">06</span>
+            <input type="range" min="4" max="10" value="6" style="width: 50%;height:10px;padding:0" id="digitsSlider">
+        </div>
+        <input type="text" id="interval" style="width: 35%;height:10px" placeholder="Interval: 30s" />
+    </div>
+    <!--<button onclick="generateTOTP()">Generate TOTP</button>-->
     
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="progress-container">
@@ -119,11 +134,11 @@
         <span id="progress-text" style="width: 10%; font-size: 0.65em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <span style="width: 100px" class="totp totp_nearby" id="totp_prev"></span>
-        <span style="width: 20px"></span>
-        <span style="width: 200px" class="totp" id="totp"></span>
-        <span style="width: 20px"></span>
-        <span style="width: 100px" class="totp totp_nearby" id="totp_next"></span>
+        <span style="width: 80px; transform: translate(-120px, 0px);" class="totp totp_nearby" id="totp_prev">------</span>
+        <!-- <span style="width: 20px"></span> -->
+        <span style="width: 160px" class="totp" id="totp">------</span>
+        <!-- <span style="width: 20px"></span> -->
+        <span style="width: 80px; transform: translate(120px, 0px);" class="totp totp_nearby" id="totp_next">------</span>
     </div>
 
 </div>
@@ -214,7 +229,6 @@
       const txtlen = cipherText.length;
       const opralen = Math.floor(0.1 * txtlen);
 
-      // Helper function to mimic Python's `%` behavior
       const mod = (a, b) => ((a % b) + b) % b;
 
       for (let index = 0; index < key.length; index++) {
@@ -304,78 +318,103 @@
 
         const offset = hex2dec(hmac.substring(hmac.length - 1));
         const otp = (hex2dec(hmac.substr(offset * 2, 8)) & hex2dec('7fffffff')) + '';
-        const otpStr = otp.substr(otp.length - 6, 6);
+        const otpStr = ("000000"+otp).substr(otp.length+6 - digits, digits);
         return otpStr
     }
 
     function generateTOTP() {
+        totp_current = document.getElementById("totp");
+        totp_prev = document.getElementById("totp_prev");
+        totp_next = document.getElementById("totp_next");
+
+        totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
+        totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
+        totp_prev.style.transform = `translate(${-totpTransWidth}px, 0)`;
+
+        totpFontSize = Math.min(1.5, 1.5*8 / digits);
+        totpNearbyFontSize = Math.min(0.63, 0.63*8 / digits);
+        totpActiveFontSize = Math.min(0.75, 0.75*8 / digits);
+        totp_prev.style.fontSize = totpNearbyFontSize+"em";
+        totp_current.style.fontSize = totpFontSize+"em";
+
+
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
         const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
         const key = base32tohex(seed);
         try{
             const epoch = Math.round(new Date().getTime() / 1000.0);
-            const time = leftpad(dec2hex(Math.floor(epoch / 30)), 16, '0');
+            const time = leftpad(dec2hex(Math.floor(epoch / interval)), 16, '0');
 
-            document.getElementById("totp").innerText = TOTP(Math.floor(epoch / 30), key);
-            document.getElementById("totp_prev").innerText = TOTP(Math.floor(epoch / 30)-1, key);;
-            document.getElementById("totp_next").innerText = TOTP(Math.floor(epoch / 30)+1, key);;
+            totp_current.innerText = TOTP(Math.floor(epoch / interval), key);
+            totp_prev.innerText = TOTP(Math.floor(epoch / interval)-1, key);;
+            totp_next.innerText = TOTP(Math.floor(epoch / interval)+1, key);;
 
 
             progressBar = document.getElementById("progressBar");
-            progressBar.value = (1-Math.ceil(epoch % 30)/30)*100;
+            progressBar.value = (1-Math.ceil(epoch % interval)/interval)*100;
             progressBar.style.width = progressBar.value+"%"
             progressBar.style.setProperty('background', progressBar.value<20 ? '#f36831' : '#76c7c0'); 
-            document.getElementById("progress-text").innerText = (30- epoch%30)+"s"
+            document.getElementById("progress-text").innerText = (interval- epoch%interval)+"s"
             if(progressBar.value<20){
-                totp_next = document.getElementById("totp_next");
-                totp_current = document.getElementById("totp")
-
                 totp_next.classList.add('totp_active');
                 totp_next.classList.add('totp_transform');
-                totp_next.style.fontSize = '0.8em'
-                if(epoch % 30==29){
-
-                    setTimeout(() => {
-                        totp_next.classList.add('totp_transform')
-                        totp_current.classList.add('totp_transform')
-
-                        totp_next.style.fontSize = '1.5em'
-                        totp_current.style.fontSize = '0.65em'
-
-                        totp_next.style.transform = `translate(-110px, 0px)`;
-                        totp_current.style.transform = `translate(-95px, 0px)`;
-                        
-                        document.getElementById("totp_prev").innerText = "";
-                    }, 500)
-                    setTimeout(() => {
-                        totp_next.classList.remove('totp_transform')
-                        totp_current.classList.remove('totp_transform')
-
-                        document.getElementById("totp_prev").innerText = totp_current.innerText
-                        totp_current.innerText = totp_next.innerText
-                        totp_next.innerText="";
-
-                        totp_next.style.fontSize = '0.65em'
-                        totp_current.style.fontSize = '1.5em'
-
-                        totp_next.style.transform = 'translate(0, 0)';
-                        totp_current.style.transform = 'translate(0, 0)';
-                    }, 950);
-                }
+                totp_next.style.fontSize = totpActiveFontSize+"em";
+                
+                
             }else{
-                document.getElementById("totp_next").classList.remove('totp_active');
-                totp_next.style.fontSize = '0.65em'
+                totp_next.classList.remove('totp_active');
+                totp_next.style.fontSize = totpNearbyFontSize+"em";
+            }
+            if(epoch % interval==interval-1){
+                /*function calculateOffset(src, target) {
+                    const targetRect = target.getBoundingClientRect();
+                    const srcRect = src.getBoundingClientRect();
+
+                    return {
+                        X: targetRect.right - srcRect.right - (targetRect.width - srcRect.width)/2,
+                        Y: targetRect.top - srcRect.top + (targetRect.height - srcRect.height)/2
+                    };
+                }*/
+
+                setTimeout(() => {
+                    totp_next.classList.add('totp_transform');
+                    totp_current.classList.add('totp_transform');
+
+                    totp_next.style.fontSize = totpFontSize+"em";
+                    totp_next.style.width = "160px";
+                    totp_current.style.fontSize = totpNearbyFontSize+"em";
+
+                    totp_next.style.transform = `translate(0, 0)`;
+                    totp_current.style.transform = `translate(${-totpTransWidth}px, 0px)`;
+                    
+                    document.getElementById("totp_prev").innerText = "";
+                }, 400)
+                setTimeout(() => {
+                    totp_next.classList.remove('totp_transform');
+                    totp_current.classList.remove('totp_transform');
+
+                    totp_prev.innerText = totp_current.innerText;
+                    totp_current.innerText = totp_next.innerText;
+                    totp_next.innerText="";
+
+                    totp_next.style.fontSize = totpNearbyFontSize+"em";
+                    totp_next.style.width = "70px";
+                    totp_current.style.fontSize = totpFontSize+"em";
+
+                    totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
+                    totp_current.style.transform = `translate(0, 0)`;
+                }, 950);
             }
         }catch(error){ 
             if (error.message === "String of HEX type must be in byte increments"){
-                document.getElementById("totp").innerText = "------";
-                document.getElementById("totp_prev").innerText = "------";
-                document.getElementById("totp_next").innerText = "------";
+                totp_current.innerText = "------";
+                totp_prev.innerText = "------";
+                totp_next.innerText = "------";
                 document.getElementById("progress-text").innerText = "--"
                 document.getElementById("progressBar").style.width = 0;
-                document.getElementById("totp_next").classList.remove('totp_active');
-                document.getElementById("totp_next").style.fontSize = '0.65em'
+                totp_next.classList.remove('totp_active');
+                totp_next.style.fontSize = totpNearbyFontSize+"em";
             }else{throw error;}
         }
     }
@@ -385,6 +424,7 @@
             navigator.clipboard.writeText(this.textContent);
         });
     }
+    totpTransWidth = 120;
     passcodeSalt = generateRandomString(20);
     passcode = "";
     document.getElementById("passcode").addEventListener('blur', function() {
@@ -400,7 +440,36 @@
         if(passcode ===""){ document.getElementById("passcode").placeholder = "Enter Passcode (if any)"; }
     });
 
-    document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
+    digits = 6;
+    document.getElementById("digitsSlider").oninput = function() {
+        digits = this.value;
+        document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
+    }
+
+    interval = 30;
+    document.getElementById("interval").addEventListener('blur', function() {
+        let value = parseInt(document.getElementById("interval").value, 10);
+        if(!isNaN(value) && value>0) {interval = value;}
+        document.getElementById("interval").value = "";
+        document.getElementById("interval").placeholder = `Interval: ${interval}s`;
+    });
+
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    document.getElementById("seed").value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
+    value = parseInt(urlParams.get('digits'));
+    if(!isNaN(value) && value>=4 && value <= 10) {
+        digits = value;
+        document.getElementById("digitsSlider").value = digits;
+        document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
+    }
+    value = parseInt(urlParams.get('interval'));
+    if(!isNaN(value) && value>0) {
+        interval = value;
+        document.getElementById("interval").placeholder = `Interval: ${interval}s`;
+    }
+    
+    //document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
     generateTOTP(); setInterval(generateTOTP, 1000);
 </script>
 
