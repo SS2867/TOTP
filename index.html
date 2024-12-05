@@ -37,7 +37,7 @@
         .totp_container {
             margin-top: 10px;
             font-size: 1.5em;
-            height: 40px;
+            height: 30px;
             color: #333;
         }
         .totp {
@@ -71,10 +71,10 @@
         }
         @keyframes blink {
             0%, 100%{
-                color: #cb63ff;
+                color: #333;
             }
             50% {
-                color: #333;
+                color: #cb63ff;
             }
         }
         .progress-container {
@@ -107,6 +107,29 @@
             color: #76c7c0;
             text-decoration: none;
         }
+        input[type="range"] {
+            -webkit-appearance: none; 
+            height: 5px;
+            background: linear-gradient(to right, #8dc3be 0%, #8dc3be var(--value), #ddd var(--value), #ddd 100%);
+            border-radius: 5px;
+            outline: none; 
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; /* 去掉默认样式 */
+            appearance: none;
+            width: 16px; /* 滑块宽度 */
+            height: 16px; /* 滑块高度 */
+            background: #7fada8; /* 滑块颜色 */
+            border-radius: 50%; /* 圆形滑块 */
+            cursor: pointer; /* 鼠标悬停时显示手形光标 */
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px; /* 滑块宽度 */
+            height: 20px; /* 滑块高度 */
+            background: #814caf; /* 滑块颜色 */
+            border-radius: 50%; /* 圆形滑块 */
+            cursor: pointer; /* 鼠标悬停时显示手形光标 */
+        }
         .span{
             white-space: pre;
         }
@@ -120,14 +143,14 @@
     <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
-            <span>Digits: </span><span id="digitsValue">06</span>
-            <input type="range" min="4" max="10" value="6" style="width: 50%;height:10px;padding:0" id="digitsSlider">
+            <span style="color:#717171; font-size: 0.9em;">Digits: <span id="digitsValue">06</span></span>
+            <input type="range" min="4" max="10" value="6" style="width: 50%;padding:0;" id="digitsSlider">
         </div>
         <input type="text" id="interval" style="width: 35%;height:10px" placeholder="Interval: 30s" />
     </div>
     <!--<button onclick="generateTOTP()">Generate TOTP</button>-->
     
-    <div style="display: flex; align-items: center; justify-content: center;">
+    <div style="display: flex; align-items: center; justify-content: center; height: 30px;">
         <div class="progress-container">
             <div class="progress-bar" id="progressBar"></div>
         </div>
@@ -408,9 +431,9 @@
             }
         }catch(error){ 
             if (error.message === "String of HEX type must be in byte increments"){
-                totp_current.innerText = "------";
-                totp_prev.innerText = "------";
-                totp_next.innerText = "------";
+                totp_current.innerText = "-".repeat(digits);
+                totp_prev.innerText = "-".repeat(digits);
+                totp_next.innerText = "-".repeat(digits);
                 document.getElementById("progress-text").innerText = "--"
                 document.getElementById("progressBar").style.width = 0;
                 totp_next.classList.remove('totp_active');
@@ -441,8 +464,14 @@
     });
 
     digits = 6;
+    function updateSlider(slider, value) {
+        slider.value = value==null? slider.value: value ;
+        const percentage = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+        slider.style.setProperty('--value', percentage + '%');
+    }
     document.getElementById("digitsSlider").oninput = function() {
         digits = this.value;
+        updateSlider(this, null);
         document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
     }
 
@@ -468,7 +497,7 @@
         interval = value;
         document.getElementById("interval").placeholder = `Interval: ${interval}s`;
     }
-    
+    updateSlider(document.getElementById("digitsSlider"), null);
     //document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
     generateTOTP(); setInterval(generateTOTP, 1000);
 </script>
