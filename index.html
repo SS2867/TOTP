@@ -401,7 +401,7 @@
             }else{
                 decryptedTOTPList = {};
                 clearPasscode();
-                document.getElementById("passcode").placeholder = "Passcode expired";
+                document.getElementById("passcode").placeholder = "[Passcode expired]";
             }
         }
         totp_current.innerText = TOTP(Math.floor(epoch / period), key);
@@ -529,7 +529,7 @@
                 const key = base32tohex(seed);
                 const epoch = Math.round(new Date().getTime() / 1000.0);
                 const cycle = Math.floor(epoch / period);
-                const blockNum = Math.max(2, 600/period)
+                const blockNum = Math.floor(Math.max(2, 600/period));
                 for(i=cycle-1; i<=cycle+blockNum;i++){
                     decryptedTOTPList[i] = TOTP(i, key);
                 }
