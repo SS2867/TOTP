@@ -41,7 +41,7 @@
             color: #333;
         }
         .totp {
-            font-size: 1.5em;
+            font-size: 1.4em;
             margin-top: 10px;
             color: #333;
             border-radius: 5px;
@@ -110,7 +110,7 @@
         input[type="range"] {
             -webkit-appearance: none; 
             height: 5px;
-            background: linear-gradient(to right, #8dc3be 0%, #8dc3be var(--value), #ddd var(--value), #ddd 100%);
+            background: linear-gradient(to right, #a2c4c0 0%, #a2c4c0 var(--value), #ddd var(--value), #ddd 100%);
             border-radius: 5px;
             outline: none; 
         }
@@ -119,7 +119,7 @@
             appearance: none;
             width: 16px; /* 滑块宽度 */
             height: 16px; /* 滑块高度 */
-            background: #7fada8; /* 滑块颜色 */
+            background: #8da8a5; /* 滑块颜色 */
             border-radius: 50%; /* 圆形滑块 */
             cursor: pointer; /* 鼠标悬停时显示手形光标 */
         }
@@ -144,9 +144,10 @@
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
             <span style="color:#717171; font-size: 0.9em;">Digits: <span id="digitsValue">06</span></span>
-            <input type="range" min="4" max="10" value="6" style="width: 50%;padding:0;" id="digitsSlider">
+            <input type="range" min="4" max="10" value="6" style="width: 60%;padding:0;" id="digitsSlider">
         </div>
-        <input type="text" id="interval" style="width: 35%;height:10px" placeholder="Interval: 30s" />
+        <span style="width: 10px"></span>
+        <input type="text" id="period" style="width: 30%;height:10px" placeholder="Period: 30s" />
     </div>
     <!--<button onclick="generateTOTP()">Generate TOTP</button>-->
     
@@ -354,7 +355,7 @@
         totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
         totp_prev.style.transform = `translate(${-totpTransWidth}px, 0)`;
 
-        totpFontSize = Math.min(1.5, 1.5*8 / digits);
+        totpFontSize = Math.min(1.4, 1.4*8 / digits);
         totpNearbyFontSize = Math.min(0.63, 0.63*8 / digits);
         totpActiveFontSize = Math.min(0.75, 0.75*8 / digits);
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
@@ -367,29 +368,32 @@
         const key = base32tohex(seed);
         try{
             const epoch = Math.round(new Date().getTime() / 1000.0);
-            const time = leftpad(dec2hex(Math.floor(epoch / interval)), 16, '0');
+            const time = leftpad(dec2hex(Math.floor(epoch / period)), 16, '0');
 
-            totp_current.innerText = TOTP(Math.floor(epoch / interval), key);
-            totp_prev.innerText = TOTP(Math.floor(epoch / interval)-1, key);;
-            totp_next.innerText = TOTP(Math.floor(epoch / interval)+1, key);;
+            totp_current.innerText = TOTP(Math.floor(epoch / period), key);
+            totp_prev.innerText = TOTP(Math.floor(epoch / period)-1, key);;
+            totp_next.innerText = TOTP(Math.floor(epoch / period)+1, key);;
 
 
             progressBar = document.getElementById("progressBar");
-            progressBar.value = (1-Math.ceil(epoch % interval)/interval)*100;
-            progressBar.style.width = progressBar.value+"%"
-            progressBar.style.setProperty('background', progressBar.value<20 ? '#f36831' : '#76c7c0'); 
-            document.getElementById("progress-text").innerText = (interval- epoch%interval)+"s"
-            if(progressBar.value<20){
+            progressBar.value = (1-Math.ceil(epoch % period)/period)*100;
+            progressBar.style.width = progressBar.value+"%";
+            progressBar.style.setProperty('background', '#76c7c0'); 
+            let timeLeft = (period- epoch%period)
+            document.getElementById("progress-text").innerText = timeLeft+"s"
+            if(timeLeft/period<=0.2 && timeLeft<=120 || timeLeft<=1){
+                
+                progressBar.style.setProperty('background', '#f36831'); 
                 totp_next.classList.add('totp_active');
                 totp_next.classList.add('totp_transform');
                 totp_next.style.fontSize = totpActiveFontSize+"em";
                 
-                
             }else{
                 totp_next.classList.remove('totp_active');
+                totp_next.classList.remove('totp_transform');
                 totp_next.style.fontSize = totpNearbyFontSize+"em";
             }
-            if(epoch % interval==interval-1){
+            if(timeLeft===1){
                 /*function calculateOffset(src, target) {
                     const targetRect = target.getBoundingClientRect();
                     const srcRect = src.getBoundingClientRect();
@@ -412,7 +416,7 @@
                     totp_current.style.transform = `translate(${-totpTransWidth}px, 0px)`;
                     
                     document.getElementById("totp_prev").innerText = "";
-                }, 400)
+                }, 550)
                 setTimeout(() => {
                     totp_next.classList.remove('totp_transform');
                     totp_current.classList.remove('totp_transform');
@@ -475,12 +479,16 @@
         document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
     }
 
-    interval = 30;
-    document.getElementById("interval").addEventListener('blur', function() {
-        let value = parseInt(document.getElementById("interval").value, 10);
-        if(!isNaN(value) && value>0) {interval = value;}
-        document.getElementById("interval").value = "";
-        document.getElementById("interval").placeholder = `Interval: ${interval}s`;
+    period = periodShadow = 30;
+    document.getElementById("period").addEventListener('blur', function() {
+        let value = parseInt(document.getElementById("period").value, 10);
+        if(!isNaN(value) && value>0) {period = periodShadow = value;}
+        document.getElementById("period").value = "";
+        document.getElementById("period").placeholder = `Period: ${period}s`;
+    });
+    document.getElementById("period").addEventListener('input', function() {
+        let value = parseInt(document.getElementById("period").value, 10);
+        if(!isNaN(value) && value>0) {period = value;} else {period = periodShadow;}
     });
 
     
@@ -492,10 +500,10 @@
         document.getElementById("digitsSlider").value = digits;
         document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
     }
-    value = parseInt(urlParams.get('interval'));
+    value = parseInt(urlParams.get('period'));
     if(!isNaN(value) && value>0) {
-        interval = value;
-        document.getElementById("interval").placeholder = `Interval: ${interval}s`;
+        period = periodShadow = value;
+        document.getElementById("period").placeholder = `Period: ${period}s`;
     }
     updateSlider(document.getElementById("digitsSlider"), null);
     //document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
