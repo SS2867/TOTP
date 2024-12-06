@@ -569,6 +569,11 @@
         inputFunc1.disabled = false;
     });
 
+    document.getElementById("seed").addEventListener('input', function() {
+        clearPasscode();
+        generateTOTP();
+    });
+
     digits = 6;
     function updateSlider(slider, value) {
         slider.value = value==null? slider.value: value ;
@@ -580,8 +585,7 @@
         digits = this.value;
         updateSlider(this, null);
         document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
-        clearPasscode();
-        generateTOTP();
+        clearPasscode()
     }
 
     period = periodShadow = 30;
@@ -595,7 +599,6 @@
         let value = parseInt(document.getElementById("period").value, 10);
         if(!isNaN(value) && value>0) {period = value;} else {period = periodShadow;}
         clearPasscode();
-        generateTOTP();
     });
     
 
@@ -609,6 +612,7 @@
         document.getElementById("passcode").value="";
         document.getElementById("input_func2").disabled=true;
         decryptedTOTPList = {};
+        generateTOTP();
     }
     
     
