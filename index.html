@@ -31,8 +31,25 @@
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        button:active {
+            background-color: #c0c0c0;
+        }
+        button:disabled {
+            background-color: #e1e1e1;
+            color: #cbcbcb;
+            cursor: not-allowed;
+        }
         input{
-            width: 94%;
+            width: 85%;
+        }
+        .square_button{
+            width: 36.8px;
+            height: 36.8px;
+            border: 0;
+            transition: display 0.2s ease
         }
         .totp_container {
             margin-top: 10px;
@@ -61,7 +78,7 @@
             text-decoration: line-through;
         }
         .totp_transform{
-            transition: transform 0.4s ease, font-size 0.4s ease, width 0.4s ease;
+            transition: transform 0.3s ease, font-size 0.3s ease, width 0.3s ease;
         }
         .totp_active{
             font-size: 0.75em;
@@ -139,8 +156,14 @@
 
 <div class="container">
     <h1>TOTP Generator</h1>
-    <input type="text" id="seed" placeholder="Enter Secret Seed" />
-    <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <input type="password" id="seed" placeholder="Enter Secret Seed" />
+        <button class="square_button" id="input_func1" style="" onclick="toggleSeedVisibility()">👁️</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center;">
+        <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
+        <button class="square_button" disabled="" id="input_func2" style="" onclick="clearPasscode()">⨯</button>
+    </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
             <span style="color:#717171; font-size: 0.9em;">Digits: <span id="digitsValue">06</span></span>
@@ -149,7 +172,7 @@
         <span style="width: 10px"></span>
         <input type="text" id="period" style="width: 30%;height:10px" placeholder="Period: 30s" />
     </div>
-    <!--<button onclick="generateTOTP()">Generate TOTP</button>-->
+    <!--<button onclick="updateTOTP()">Generate TOTP</button>-->
     
     <div style="display: flex; align-items: center; justify-content: center; height: 30px;">
         <div class="progress-container">
@@ -314,8 +337,9 @@
         return str;
     }
 
+    const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
     function base32tohex(base32) {
-        const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        
         let bits = "";
         let hex = "";
 
@@ -336,7 +360,13 @@
         const time = leftpad(dec2hex(block), 16, '0');
 
         const shaObj = new jsSHA("SHA-1", "HEX");
-        shaObj.setHMACKey(key, "HEX");
+        try{
+            shaObj.setHMACKey(key, "HEX");
+        }catch(error){ 
+            if (error.message === "String of HEX type must be in byte increments"){
+                return null;
+            }else{throw error;}
+        }    
         shaObj.update(time);
         const hmac = shaObj.getHMAC("HEX");
 
@@ -346,10 +376,42 @@
         return otpStr
     }
 
-    function generateTOTP() {
-        totp_current = document.getElementById("totp");
-        totp_prev = document.getElementById("totp_prev");
-        totp_next = document.getElementById("totp_next");
+
+    totp_current = document.getElementById("totp");
+    totp_prev = document.getElementById("totp_prev");
+    totp_next = document.getElementById("totp_next");
+
+    function generateTOTP(){
+        let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+        if (seed_input == ""){seed_input = "F";}
+        const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+        const key = base32tohex(seed);
+
+        const epoch = Math.round(new Date().getTime() / 1000.0);
+        
+        if (TOTP(Math.floor(epoch / period), key)==null){return -1;}
+        
+        cycle = Math.floor(epoch / period);
+        if(Object.keys(decryptedTOTPList).length){
+            if (cycle in decryptedTOTPList){
+                totp_current.innerText = decryptedTOTPList[cycle];
+                totp_prev.innerText = decryptedTOTPList[cycle-1];
+                totp_next.innerText = cycle+1 in decryptedTOTPList? decryptedTOTPList[cycle+1]: "-".repeat(digits);
+                return Math.max(...Object.keys(decryptedTOTPList).map(Number)) - cycle;
+            }else{
+                decryptedTOTPList = {};
+                clearPasscode();
+                document.getElementById("passcode").placeholder = "Passcode expired";
+            }
+        }
+        totp_current.innerText = TOTP(Math.floor(epoch / period), key);
+        totp_prev.innerText = TOTP(Math.floor(epoch / period)-1, key);
+        totp_next.innerText = TOTP(Math.floor(epoch / period)+1, key);
+        return 0;
+        
+    }
+
+    function updateTOTP() {
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
         totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
@@ -361,20 +423,14 @@
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
         totp_current.style.fontSize = totpFontSize+"em";
 
+        const epoch = Math.round(new Date().getTime() / 1000.0);
+        //const time = leftpad(dec2hex(Math.floor(epoch / period)), 16, '0');
 
-        let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-        if (seed_input == ""){seed_input = "F";}
-        const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
-        const key = base32tohex(seed);
-        try{
-            const epoch = Math.round(new Date().getTime() / 1000.0);
-            const time = leftpad(dec2hex(Math.floor(epoch / period)), 16, '0');
-
-            totp_current.innerText = TOTP(Math.floor(epoch / period), key);
-            totp_prev.innerText = TOTP(Math.floor(epoch / period)-1, key);;
-            totp_next.innerText = TOTP(Math.floor(epoch / period)+1, key);;
-
-
+        temp = generateTOTP();
+        if(temp >=0){
+            if(Object.keys(decryptedTOTPList).length){
+                document.getElementById("passcode").placeholder = `[${temp} blocks left] ` +"•".repeat(passcodeLen);
+            }
             progressBar = document.getElementById("progressBar");
             progressBar.value = (1-Math.ceil(epoch % period)/period)*100;
             progressBar.style.width = progressBar.value+"%";
@@ -415,8 +471,8 @@
                     totp_next.style.transform = `translate(0, 0)`;
                     totp_current.style.transform = `translate(${-totpTransWidth}px, 0px)`;
                     
-                    document.getElementById("totp_prev").innerText = "";
-                }, 550)
+                    totp_prev.innerText = "";
+                }, 630)
                 setTimeout(() => {
                     totp_next.classList.remove('totp_transform');
                     totp_current.classList.remove('totp_transform');
@@ -426,23 +482,21 @@
                     totp_next.innerText="";
 
                     totp_next.style.fontSize = totpNearbyFontSize+"em";
-                    totp_next.style.width = "70px";
+                    totp_next.style.width = "80px";
                     totp_current.style.fontSize = totpFontSize+"em";
 
                     totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
                     totp_current.style.transform = `translate(0, 0)`;
                 }, 950);
             }
-        }catch(error){ 
-            if (error.message === "String of HEX type must be in byte increments"){
-                totp_current.innerText = "-".repeat(digits);
-                totp_prev.innerText = "-".repeat(digits);
-                totp_next.innerText = "-".repeat(digits);
-                document.getElementById("progress-text").innerText = "--"
-                document.getElementById("progressBar").style.width = 0;
-                totp_next.classList.remove('totp_active');
-                totp_next.style.fontSize = totpNearbyFontSize+"em";
-            }else{throw error;}
+        }else{ 
+            totp_current.innerText = "-".repeat(digits);
+            totp_prev.innerText = "-".repeat(digits);
+            totp_next.innerText = "-".repeat(digits);
+            document.getElementById("progress-text").innerText = "--"
+            document.getElementById("progressBar").style.width = 0;
+            totp_next.classList.remove('totp_active');
+            totp_next.style.fontSize = totpNearbyFontSize+"em";
         }
     }
 
@@ -454,17 +508,65 @@
     totpTransWidth = 120;
     passcodeSalt = generateRandomString(20);
     passcode = "";
-    document.getElementById("passcode").addEventListener('blur', function() {
-        if (document.getElementById("passcode").value){
-            passcodeSalt = generateRandomString(20);
-            passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);
-            document.getElementById("passcode").value = "";
-            document.getElementById("passcode").placeholder = "•".repeat(passcode.length);
-        }
+    passcodeLen = 0;
+    decryptedTOTPList = {};
+    document.getElementById("passcode").addEventListener('blur', function(){setTimeout(function() {
+            passcodeInput = document.getElementById("passcode");
+            inputFunc1 = document.getElementById("input_func1");
+            inputFunc2 = document.getElementById("input_func2");
+            inputFunc2.onclick = function(){clearPasscode()};
+            inputFunc2.innerText = "⨯";
+            inputFunc2.disabled = passcode||Object.keys(decryptedTOTPList).length? false:true;
+            inputFunc1.onclick = function(){toggleSeedVisibility()};
+            inputFunc1.innerText = "👁️";
+            inputFunc1.disabled = false;
+            if (document.getElementById("passcode").value){
+                passcodeInput.value = "";
+                
+                let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+                if (seed_input == ""){seed_input = "F";}
+                const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+                const key = base32tohex(seed);
+                const epoch = Math.round(new Date().getTime() / 1000.0);
+                const cycle = Math.floor(epoch / period);
+                const blockNum = Math.max(2, 600/period)
+                for(i=cycle-1; i<=cycle+blockNum;i++){
+                    decryptedTOTPList[i] = TOTP(i, key);
+                }
+                
+                passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
+                passcode = "";
+            }
+            generateTOTP();
+        }, 200)
     });
     document.getElementById("passcode").addEventListener('input', function() {
-        passcode = encrypt(document.getElementById("passcode").value, "haulvnebalIfv"+passcodeSalt);
-        if(passcode ===""){ document.getElementById("passcode").placeholder = "Enter Passcode (if any)"; }
+        passcodeInput = document.getElementById("passcode");
+        passcode = encrypt(passcodeInput.value, "haulvnebalIfv"+passcodeSalt);
+        passcodeLen = passcode.length;
+        decryptedTOTPList = {};
+        if(passcode ===""){ passcodeInput.placeholder = "Enter Passcode (if any)"; }
+        generateTOTP();
+        
+        seedInput = document.getElementById("seed");
+        inputFunc1 = document.getElementById("input_func1");
+        inputFunc2 = document.getElementById("input_func2");
+        inputFunc2.onclick = function(){
+            seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            seedInput.style.color = '#cc7a00';
+            setTimeout(function(){seedInput.style.color = ''}, 500)
+        };
+        inputFunc2.innerText = "🔒";
+        inputFunc2.disabled = false;
+        
+        inputFunc1.onclick = function(){
+            seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            clearPasscode();
+            seedInput.style.color = '#cc7a00';
+            setTimeout(function(){seedInput.style.color = ''}, 500)
+        };
+        inputFunc1.innerText = "🔑";
+        inputFunc1.disabled = false;
     });
 
     digits = 6;
@@ -472,11 +574,14 @@
         slider.value = value==null? slider.value: value ;
         const percentage = (slider.value - slider.min) / (slider.max - slider.min) * 100;
         slider.style.setProperty('--value', percentage + '%');
+        generateTOTP();
     }
     document.getElementById("digitsSlider").oninput = function() {
         digits = this.value;
         updateSlider(this, null);
         document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
+        clearPasscode();
+        generateTOTP();
     }
 
     period = periodShadow = 30;
@@ -489,8 +594,23 @@
     document.getElementById("period").addEventListener('input', function() {
         let value = parseInt(document.getElementById("period").value, 10);
         if(!isNaN(value) && value>0) {period = value;} else {period = periodShadow;}
+        clearPasscode();
+        generateTOTP();
     });
+    
 
+    function toggleSeedVisibility(){
+        seedInput = document.getElementById("seed");
+        seedInput.type = (seedInput.type=="text"? "password": "text");
+    }
+    function clearPasscode(){
+        passcode = "";
+        document.getElementById("passcode").placeholder = "Enter Passcode (if any)";
+        document.getElementById("passcode").value="";
+        document.getElementById("input_func2").disabled=true;
+        decryptedTOTPList = {};
+    }
+    
     
     const urlParams = new URLSearchParams(window.location.search);
     document.getElementById("seed").value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
@@ -506,8 +626,7 @@
         document.getElementById("period").placeholder = `Period: ${period}s`;
     }
     updateSlider(document.getElementById("digitsSlider"), null);
-    //document.getElementById("seed").value = "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
-    generateTOTP(); setInterval(generateTOTP, 1000);
+    updateTOTP(); setInterval(updateTOTP, 1000);
 </script>
 
 </body>
