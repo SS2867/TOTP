@@ -182,11 +182,11 @@
         <span id="progress-text" style="width: 10%; font-size: 0.65em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <span style="width: 80px; transform: translate(-120px, 0px);" class="totp totp_nearby" id="totp_prev">------</span>
+        <span style="width: 80px; transform: translate(-120px, 0px);" class="totp totp_nearby totp_transform" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> -->
         <span style="width: 160px" class="totp" id="totp">------</span>
         <!-- <span style="width: 20px"></span> -->
-        <span style="width: 80px; transform: translate(120px, 0px);" class="totp totp_nearby" id="totp_next">------</span>
+        <span style="width: 80px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform" id="totp_next">------</span>
     </div>
 
 </div>
@@ -418,6 +418,9 @@
         totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
         totp_prev.style.transform = `translate(${-totpTransWidth}px, 0)`;
 
+        totp_next.classList.add("totp_transform");
+        totp_current.classList.add("totp_transform");
+
         totpFontSize = Math.min(1.4, 1.4*8 / digits);
         totpNearbyFontSize = Math.min(0.63, 0.63*8 / digits);
         totpActiveFontSize = Math.min(0.75, 0.75*8 / digits);
@@ -442,12 +445,10 @@
                 
                 progressBar.style.setProperty('background', '#f36831'); 
                 totp_next.classList.add('totp_active');
-                totp_next.classList.add('totp_transform');
                 totp_next.style.fontSize = totpActiveFontSize+"em";
                 
             }else{
                 totp_next.classList.remove('totp_active');
-                totp_next.classList.remove('totp_transform');
                 totp_next.style.fontSize = totpNearbyFontSize+"em";
             }
             if(timeLeft===1){
@@ -462,9 +463,6 @@
                 }*/
 
                 setTimeout(() => {
-                    totp_next.classList.add('totp_transform');
-                    totp_current.classList.add('totp_transform');
-
                     totp_next.style.fontSize = totpFontSize+"em";
                     totp_next.style.width = "160px";
                     totp_current.style.fontSize = totpNearbyFontSize+"em";
@@ -503,7 +501,7 @@
 
     for(i of ["totp", "totp_prev", "totp_next"]){
         document.getElementById(i).addEventListener('click', function() {
-            navigator.clipboard.writeText(this.textContent);
+            navigator.clipboard.writeText( isNaN(parseInt(this.textContent))? "" : this.textContent );
         });
     }
     totpTransWidth = 120;
