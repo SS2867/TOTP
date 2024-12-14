@@ -385,7 +385,14 @@
     function generateTOTP(){
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
-        const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+        seed = "";
+        try{
+            seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+        }catch(error){ 
+            if (error.message.startsWith("Invalid character in ciphertext:")){
+                return -1;
+            }else{throw error;}
+        }    
         const key = base32tohex(seed);
 
         const epoch = Math.round(new Date().getTime() / 1000.0);
