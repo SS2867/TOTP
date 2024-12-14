@@ -385,19 +385,25 @@
     function generateTOTP(){
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
-        seed = "";
+        let seed = "";
+        
+        function seedInvalid(){
+            document.getElementById("seed").style.color = '#d60808';
+            document.getElementById("passcode").disabled = true;
+        }
+
         try{
             seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
         }catch(error){ 
             if (error.message.startsWith("Invalid character in ciphertext:")){
-                return -1;
+                seedInvalid(); return -1;
             }else{throw error;}
         }    
         const key = base32tohex(seed);
 
         const epoch = Math.round(new Date().getTime() / 1000.0);
         
-        if (TOTP(Math.floor(epoch / period), key)==null){return -1;}
+        if (TOTP(Math.floor(epoch / period), key)==null){seedInvalid(); return -1; }
         
         cycle = Math.floor(epoch / period);
         if(Object.keys(decryptedTOTPList).length){
@@ -415,6 +421,9 @@
         totp_current.innerText = TOTP(Math.floor(epoch / period), key);
         totp_prev.innerText = TOTP(Math.floor(epoch / period)-1, key);
         totp_next.innerText = TOTP(Math.floor(epoch / period)+1, key);
+        
+        document.getElementById("seed").style.color = '';
+        document.getElementById("passcode").disabled = false;
         return 0;
         
     }
@@ -439,6 +448,7 @@
 
         temp = generateTOTP();
         if(temp >=0){
+
             if(Object.keys(decryptedTOTPList).length){
                 document.getElementById("passcode").placeholder = `[${temp} blocks left] ` +"•".repeat(passcodeLen);
             }
@@ -531,7 +541,16 @@
                 
                 let seed_input = document.getElementById("seed").value.trim().toUpperCase();
                 if (seed_input == ""){seed_input = "F";}
-                const seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+                let seed = "";
+                try{
+                    seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+                }catch(error){ 
+                    if (error.message.startsWith("Invalid character in ciphertext:")){
+                        passcode = "";
+                        inputFunc2.disabled = true;
+                        return -1;
+                    }else{throw error;}
+                }
                 const key = base32tohex(seed);
                 const epoch = Math.round(new Date().getTime() / 1000.0);
                 const cycle = Math.floor(epoch / period);
@@ -558,7 +577,13 @@
         inputFunc1 = document.getElementById("input_func1");
         inputFunc2 = document.getElementById("input_func2");
         inputFunc2.onclick = function(){
-            seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            try{
+                seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            }catch(error){ 
+                if (error.message.startsWith("Invalid character in plaintext:")){
+                    return -1;
+                }else{throw error;}
+            }
             seedInput.style.color = '#cc7a00';
             setTimeout(function(){seedInput.style.color = ''}, 500)
         };
@@ -566,7 +591,13 @@
         inputFunc2.disabled = false;
         
         inputFunc1.onclick = function(){
-            seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            try{
+                seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+            }catch(error){ 
+                if (error.message.startsWith("Invalid character in ciphertext:")){
+                    return -1;
+                }else{throw error;}
+            }
             clearPasscode();
             seedInput.style.color = '#cc7a00';
             setTimeout(function(){seedInput.style.color = ''}, 500)
