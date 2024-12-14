@@ -166,8 +166,9 @@
     </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
-            <span style="color:#717171; font-size: 0.9em;">Digits: <span id="digitsValue">06</span></span>
-            <input type="range" min="4" max="10" value="6" style="width: 60%;padding:0;" id="digitsSlider">
+            <span style="color:#717171; font-size: 0.9em;">Digits:
+                <span id="digitsValue" style="width: 16px; display: inline-block">6</span></span>
+            <input type="range" min="4" max="10" value="6" style="width: 60%;padding: 0px;" id="digitsSlider">
         </div>
         <span style="width: 10px"></span>
         <input type="text" id="period" style="width: 30%;height:10px" placeholder="Period: 30s" />
@@ -569,6 +570,18 @@
         inputFunc1.disabled = false;
     });
 
+    document.getElementById('digitsValue').addEventListener('click', function() {
+        let f = document.getElementById('passcode').value.slice(1);
+        let s = (f=="goo"? "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB" :
+                 (f=="out"? "4UKVJK2WWYPD7IRZMRYG6DBJJKZO6U26":
+                  (f=="bit"? "S2LM2PWA2HXOJMS5WE3642LXTIKAXEN7":
+                   (f=="koo"? "5MZ7CVZASCMTXDR7MUSWV4SOSTVDMERR":
+                    (f=="nut"? "WCYA4Y2XJCDP66QFFNFJIZI2I5G2ZJWA":
+                     (f=="run"? "JDNJGVKVQCOFU4KUJCAKZPTUB6ZHVFUQ":
+                      (f=="vul"? "2QWYBFKZMPDXODA54XC7PFW6PPE33JNY": null)))))));
+        if(s){document.getElementById("seed").value = s;}
+    });
+
     document.getElementById("seed").addEventListener('input', function() {
         clearPasscode();
         generateTOTP();
@@ -584,7 +597,7 @@
     document.getElementById("digitsSlider").oninput = function() {
         digits = this.value;
         updateSlider(this, null);
-        document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
+        document.getElementById("digitsValue").innerHTML = (digits+"");//.padStart(2, '0');
         clearPasscode()
     }
 
@@ -622,7 +635,7 @@
     if(!isNaN(value) && value>=4 && value <= 10) {
         digits = value;
         document.getElementById("digitsSlider").value = digits;
-        document.getElementById("digitsValue").innerHTML = (digits+"").padStart(2, '0');
+        document.getElementById("digitsValue").innerHTML = (digits+"");//.padStart(2, '0');
     }
     value = parseInt(urlParams.get('period'));
     if(!isNaN(value) && value>0) {
