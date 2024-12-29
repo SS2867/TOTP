@@ -65,6 +65,9 @@
             position:absolute;
             cursor: pointer;
         }
+        .pressable{
+            border-radius: 5px;
+        }
         .pressable:hover {
             background-color: #e0e0e0;
         }
@@ -179,7 +182,7 @@
         <div class="progress-container">
             <div class="progress-bar" id="progressBar"></div>
         </div>
-        <span id="progress-text" style="width: 10%; font-size: 0.65em;">time</span>
+        <span id="progress-text" style="width: 10%; font-size: 0.75em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
         <span style="width: 85px; transform: translate(-120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
@@ -189,7 +192,7 @@
         <span style="width: 85px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_next">------</span>
     </div>
     <div style="height: 25px;"></div>
-    <div style="display: flex; font-size: 0.65em; color:#878787" class="pressable" onclick="fetchTime()">
+    <div style="display: flex; font-size: 0.75em; color:#878787; " class="pressable" onclick="fetchTime()">
         <strong><span style="width: 15px;display: inline-block"  id="time_state">↻</span></strong>
         <span style="width: 10px;" "></span>
         <span id="time_display" style=""></span>
@@ -448,8 +451,8 @@
         totp_current.classList.add("totp_transform");
 
         totpFontSize = Math.min(1.55, 1.55*8 / digits);
-        totpNearbyFontSize = Math.min(0.68, 0.68*8 / digits);
-        totpActiveFontSize = Math.min(0.75, 0.75*8 / digits);
+        totpNearbyFontSize = Math.min(0.72, 0.72*8 / digits);
+        totpActiveFontSize = Math.min(0.78, 0.78*8 / digits);
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
         totp_current.style.fontSize = totpFontSize+"em";
 
