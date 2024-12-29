@@ -21,7 +21,7 @@
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
-            max-width: 300px;
+            max-width: 320px;
             width: 100%;
         }
         input, button {
@@ -65,10 +65,10 @@
             position:absolute;
             cursor: pointer;
         }
-        .totp:hover {
+        .pressable:hover {
             background-color: #e0e0e0;
         }
-        .totp:active {
+        .pressable:active {
             background-color: #c0c0c0;
         }
         .totp_nearby {
@@ -182,12 +182,21 @@
         <span id="progress-text" style="width: 10%; font-size: 0.65em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <span style="width: 80px; transform: translate(-120px, 0px);" class="totp totp_nearby totp_transform" id="totp_prev">------</span>
+        <span style="width: 85px; transform: translate(-120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> -->
-        <span style="width: 160px" class="totp" id="totp">------</span>
+        <span style="width: 170px" class="totp pressable" id="totp">------</span>
         <!-- <span style="width: 20px"></span> -->
-        <span style="width: 80px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform" id="totp_next">------</span>
+        <span style="width: 85px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_next">------</span>
     </div>
+    <div style="height: 25px;"></div>
+    <div style="display: flex; font-size: 0.65em; color:#878787" class="pressable" onclick="fetchTime()">
+        <strong><span style="width: 15px;display: inline-block"  id="time_state">↻</span></strong>
+        <span style="width: 10px;" "></span>
+        <span id="time_display" style=""></span>
+        <span style="width: 10px" ></span>
+        <span id="time_info" style="" >Loading... Is your browser js enabled?</span>
+    </div>
+
 
 </div>
 <footer>
@@ -429,6 +438,7 @@
     }
 
     function updateTOTP() {
+        document.getElementById("time_display").innerHTML = new Date().toLocaleString();
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
         totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
@@ -437,8 +447,8 @@
         totp_next.classList.add("totp_transform");
         totp_current.classList.add("totp_transform");
 
-        totpFontSize = Math.min(1.4, 1.4*8 / digits);
-        totpNearbyFontSize = Math.min(0.63, 0.63*8 / digits);
+        totpFontSize = Math.min(1.55, 1.55*8 / digits);
+        totpNearbyFontSize = Math.min(0.68, 0.68*8 / digits);
         totpActiveFontSize = Math.min(0.75, 0.75*8 / digits);
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
         totp_current.style.fontSize = totpFontSize+"em";
@@ -664,7 +674,33 @@
         generateTOTP();
     }
     
-    
+    async function fetchTime() {
+        let time_state = document.getElementById("time_state");
+        let time_info = document.getElementById("time_info");
+        try {
+            time_state.innerHTML = "↻"; time_state.style.color = "";
+            time_info.innerHTML = "Syncing time...";
+
+            const response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+            const data = await response.json();
+
+            const dateTime = new Date(data.utc_datetime);
+            const sysDateTime = new Date();
+            const timeDifference = dateTime - sysDateTime;
+            if(Math.abs(timeDifference)<200){
+                time_state.innerHTML = "◷"; time_state.style.color = "#009900"; time_info.innerHTML = "Systime is exact.";
+            }else{
+                const absTimeDifference = Math.abs(timeDifference);
+                time_state.innerHTML = "‼"; time_state.style.color = absTimeDifference<5000? "#ff8000":"#d60808";
+                time_info.innerHTML = `Systime is ${Math.ceil(absTimeDifference/100)/10}s ${timeDifference>0? 'behind':'ahead'}.`;
+            }
+        } catch (error) {
+            if (error instanceof TypeError){
+                time_state.innerHTML = "◷"; time_state.style.color = "#e69900"; time_info.innerHTML = "Internet unavailable.";
+            }else{throw error;}
+        }
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     document.getElementById("seed").value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
     value = parseInt(urlParams.get('digits'));
@@ -679,7 +715,8 @@
         document.getElementById("period").placeholder = `Period: ${period}s`;
     }
     updateSlider(document.getElementById("digitsSlider"), null);
-    updateTOTP(); setInterval(updateTOTP, 1000);
+    updateTOTP(); setInterval(updateTOTP, 1000); 
+    fetchTime();
 </script>
 
 </body>
