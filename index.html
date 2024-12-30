@@ -192,7 +192,7 @@
         <span style="width: 85px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_next">------</span>
     </div>
     <div style="height: 25px;"></div>
-    <div style="display: flex; font-size: 0.75em; color:#878787; " class="pressable" onclick="fetchTime()">
+    <div style="display: flex; font-size: 0.75em; color:#878787; height: 16px;" class="pressable" onclick="fetchTime()">
         <strong><span style="width: 15px;display: inline-block"  id="time_state">↻</span></strong>
         <span style="width: 10px;" "></span>
         <span id="time_display" style=""></span>
@@ -441,7 +441,6 @@
     }
 
     function updateTOTP() {
-        document.getElementById("time_display").innerHTML = new Date().toLocaleString();
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
         totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
@@ -688,32 +687,35 @@
             let sysDateTime = new Date();
             let requestCnt = 0;
             let timeDifferenceList = []
-            while( sysDateTime-startTime>200 && requestCnt<5 ){
+            while( sysDateTime-startTime>200 && requestCnt<=5 ){
                 startTime = new Date();
                 let response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+                if(response.status === 429){break;}
                 let data = await response.json();
                 sysDateTime = new Date();
                 let dateTime = new Date(data.utc_datetime);
                 timeDifferenceList.push(dateTime - sysDateTime + (sysDateTime-startTime)/2);
                 requestCnt +=1;
             }
-
-            timeDifferenceList.sort((a, b) => a - b);
-            const timeDifference = timeDifferenceList[Math.floor(timeDifferenceList.length / 2)];
-            if(Math.abs(timeDifference)<200){
-                time_state.innerHTML = "◷"; time_state.style.color = "#009900"; time_info.innerHTML = "Systime is exact.";
-            }else{
+            let timeDifference = timeDifferenceList.slice(-1)[0];
+            if(requestCnt==6){
+                timeDifferenceList.sort((a, b) => a - b);
+                timeDifference = timeDifferenceList[2];
+            }
+            timeDifference = Math.ceil(timeDifference/10)/100;
+            time_state.innerHTML = "◷"; time_state.style.color = "#009900"; 
+            if(isNaN(timeDifference)){ time_state.style.color = "#e69900"; time_info.innerHTML = "Request to API is rate limited."}
+            else if(Math.abs(timeDifference)<.15){ time_info.innerHTML = "Systime is exact.";}
+            else{
                 const absTimeDifference = Math.abs(timeDifference);
-                if(absTimeDifference<2000){
-                    time_state.innerHTML = "◷"; time_state.style.color = "#00aaff"
-                }else{
-                    time_state.innerHTML = "‼"; time_state.style.color = absTimeDifference<1e2? "#ff8000":"#d60808";
+                if(absTimeDifference>2){
+                    time_state.innerHTML = "‼"; time_state.style.color = absTimeDifference<10? "#aa80ff":"#d60808";
                 }
-                time_info.innerHTML = `Systime is ${Math.ceil(absTimeDifference/100)/10}s ${timeDifference>0? 'behind':'ahead'}.`;
+                time_info.innerHTML = `Systime is ${absTimeDifference}s ${timeDifference>0? 'behind':'ahead'}.`;
             }
         } catch (error) {
             if (error instanceof TypeError){
-                time_state.innerHTML = "◷"; time_state.style.color = "#e69900"; time_info.innerHTML = "Connection failed.";
+                time_state.style.color = "#e69900"; time_info.innerHTML = "Connection failed.";
             }else{throw error;}
         }
     }
@@ -733,7 +735,7 @@
     }
     updateSlider(document.getElementById("digitsSlider"), null);
     updateTOTP(); setInterval(updateTOTP, 1000); 
-    fetchTime();
+    fetchTime(); setInterval(function(){document.getElementById("time_display").innerHTML = new Date().toLocaleString();}, 50);
 </script>
 
 </body>
