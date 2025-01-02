@@ -233,15 +233,12 @@
 
 <script>
     function decrypt(cipherText, key, validChars = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~') {
-      // Ensure all characters in cipherText are valid
       for (let char of cipherText) {
-        if (!validChars.includes(char)) {
-          throw new Error(`Invalid character in ciphertext: ${char}`);
-        }
+        if (!validChars.includes(char)) {throw new Error(`Invalid character in ciphertext: ${char}`);}
       }
-      let plainText = cipherText.split(""); // Initialize the plain text as an array
+      let plainText = cipherText.split("");
       const opralen = Math.floor(0.1 * cipherText.length); // Operation length factor
-      const txtlen = cipherText.length; // Text length
+      const txtlen = cipherText.length;
 
       // Iterate over the key in reverse order
       for (let index = key.length - 1; index >= 0; index--) {
@@ -253,15 +250,13 @@
           const factorA = (Math.pow(temp, 2) + opralen * temp) % txtlen;
           const factorB = (temp + 1 + key.charCodeAt(index)) % txtlen;
           
-          // Swap characters
-          [plainText[factorA], plainText[factorB]] = [plainText[factorB], plainText[factorA]];
+          [plainText[factorA], plainText[factorB]] = [plainText[factorB], plainText[factorA]];  // Swap characters
           temp -= 1;
-            
         }
         // Reverse linear shifting using operation factors
         for (let j = plainText.length - 1; j >= 0; j--) {
           plainText[j] = validChars[
-            ((validChars.indexOf(plainText[j]) - i - (index + 1) * (j + 2)) % validChars.length + validChars.length)%validChars.length 
+            ((validChars.indexOf(plainText[j]) - i - Math.floor(i/3) - Math.floor(i/17) - (index + 1) * (j + 2)) % validChars.length + validChars.length)%validChars.length 
           ];
           if (j > 0) {
             plainText[j] = validChars[
@@ -279,9 +274,7 @@
     function encrypt(plainText, key, validChars = ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~') {
       // Ensure all characters in plainText are in validChars
       for (let char of plainText) {
-        if (!validChars.includes(char)) {
-          throw new Error(`Invalid character in plaintext: ${char}`);
-        }
+        if (!validChars.includes(char)) {throw new Error(`Invalid character in plaintext: ${char}`);}
       }
 
       // Initialize the cipher text list
@@ -296,7 +289,7 @@
 
         // Linear shifting using operation factors
         for (let j = 0; j < cipherText.length; j++) {
-          cipherText[j] = validChars[mod(validChars.indexOf(cipherText[j]) + i + (index + 1) * (j + 2), validChars.length)];
+          cipherText[j] = validChars[mod(validChars.indexOf(cipherText[j]) + i + Math.floor(i/3) + Math.floor(i/17) + (index + 1) * (j + 2), validChars.length)];
           if (j > 0) {
             cipherText[j] = validChars[mod(
               validChars.indexOf(cipherText[j]) + i + 
@@ -306,23 +299,18 @@
           }
         }
 
-        // Generate the operation factor temp from index
-        let temp = index;
+        let temp = index; // Generate the operation factor temp from index
 
         // Exchange the positions of two characters depending on operation factors
         for (let j = 0; j < 4 + Math.floor(plainText.length * 1.1); j++) {
           const factorA = mod((temp ** 2 + opralen * temp), txtlen);
           const factorB = mod((temp + 1 + key.charCodeAt(index)), txtlen);
-
-          // Swap the positions
-          [cipherText[factorA], cipherText[factorB]] = [cipherText[factorB], cipherText[factorA]];
-
+          [cipherText[factorA], cipherText[factorB]] = [cipherText[factorB], cipherText[factorA]]; // Swap the positions
           temp += 1;
         }
       }
-
-      // Convert the list to string
-      return cipherText.join('');
+      
+      return cipherText.join(''); //  Convert the list to string
     }
     function generateRandomString(length, chars=' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~') {
         let result = '';
@@ -620,13 +608,13 @@
 
     document.getElementById('digitsValue').addEventListener('click', function() {
         let f = document.getElementById('passcode').value.slice(1);
-        let s = (f=="goo"? "QS3ZSSKPZCHMIFK5XKU4WRUQPKOWCMWD" :
-                 (f=="out"? "4UKVJK2WWYPD7IRZMRYG6DBJJKZO6U26":
-                  (f=="bit"? "S2LM2PWA2HXOJMS5WE3642LXTIKAXEN7":
-                   (f=="koo"? "5MZ7CVZASCMTXDR7MUSWV4SOSTVDMERR":
-                    (f=="nut"? "WCYA4Y2XJCDP66QFFNFJIZI2I5G2ZJWA":
-                     (f=="run"? "JDNJGVKVQCOFU4KUJCAKZPTUB6ZHVFUQ":
-                      (f=="vul"? "2QWYBFKZMPDXODA54XC7PFW6PPE33JNY": null)))))));
+        let s = (f=="goo"? "OZZY4NXW4NHTB6BLIPU7JZIW7IDRZS5I" :
+                 (f=="out"? "23IUTFH5ZDPKYBIH5WYJRLVPZIOJV2BD":
+                  (f=="bit"? "QBJLEKDH5SXVCFJLHJ3BPC75DG73OKUE":
+                   (f=="koo"? "3TX6MQGHVNM2Q4IN5ZSZIEGUCRK6DKYW":
+                    (f=="nut"? "UJW7GTH6MNDWXXHTWSFM3B4AY33VQP5F":
+                     (f=="run"? "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V":
+                      (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": null)))))));
         if(s){document.getElementById("seed").value = s;}
     });
 
