@@ -612,7 +612,7 @@
                  (f=="out"? "23IUTFH5ZDPKYBIH5WYJRLVPZIOJV2BD":
                   (f=="bit"? "QBJLEKDH5SXVCFJLHJ3BPC75DG73OKUE":
                    (f=="koo"? "3TX6MQGHVNM2Q4IN5ZSZIEGUCRK6DKYW":
-                    (f=="pcl"? "BQA467UMKTT66G5Z2H6C4W5KXLX32M6X":
+                    (f=="pcl"? "MIGY3PMB64ZJ6ZB5J2MX5QBFY22F6WGD":
                      (f=="nut"? "UJW7GTH6MNDWXXHTWSFM3B4AY33VQP5F":
                       (f=="run"? "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V":
                        (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": null))))))));
@@ -676,7 +676,7 @@
             let sysDateTime = new Date();
             let requestCnt = 0;
             let timeDifferenceList = []
-            while( sysDateTime-startTime>200 && requestCnt<=5 ){
+            while( sysDateTime-startTime>200 && requestCnt<=3 ){
                 startTime = new Date();
                 let response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
                 if(response.status === 429){break;}
@@ -687,7 +687,7 @@
                 requestCnt +=1;
             }
             let timeDifference = timeDifferenceList.slice(-1)[0];
-            if(requestCnt==6){
+            if(requestCnt==4){
                 timeDifferenceList.sort((a, b) => a - b);
                 timeDifference = timeDifferenceList[2];
             }
