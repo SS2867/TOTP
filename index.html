@@ -51,12 +51,22 @@
             border: 0;
             transition: display 0.2s ease
         }
+        .bottom_button{
+            width: 25px;
+            height: 25px;
+            border: 0;
+            margin: 0 0;
+            padding: 4px 4px;
+            transition: display 0.2s ease
+        }
         .totp_container {
             margin-top: 10px;
             font-size: 1.5em;
             height: 30px;
             color: #333;
         }
+        .bottom_container{display: flex; width: 95%;}
+        .bottom_content_container{display: flex; margin: 5px 5px;}
         .totp {
             font-size: 1.4em;
             margin-top: 10px;
@@ -185,20 +195,38 @@
         <span id="progress-text" style="width: 10%; font-size: 0.75em;">time</span>
     </div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <span style="width: 85px; transform: translate(-120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
+        <span style="width: 85px; transform: translate(-120px, +1px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> -->
         <span style="width: 170px" class="totp pressable" id="totp">------</span>
         <!-- <span style="width: 20px"></span> -->
         <span style="width: 85px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_next">------</span>
     </div>
     <div style="height: 25px;"></div>
-    <div style="display: flex; font-size: 0.75em; color:#878787; height: 16px;" class="pressable" onclick="fetchTime()">
-        <strong><span style="width: 15px;display: inline-block"  id="time_state">↻</span></strong>
-        <span style="width: 10px;" "></span>
-        <span id="time_display" style=""></span>
-        <span style="width: 10px" ></span>
-        <span id="time_info" style="" >Loading... Is your browser js enabled?</span>
+    <div style="display: flex; font-size: 0.75em; color:#878787; height: 25px;">
+        <button class="bottom_button" id="time_adjustment_button" style="" onclick="toggleTimeAdjustment()">📌</button>
+        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -75px)" onclick="toggleTOTPVisibility()">👁️</button>
+    
+        <span id="time_display_box" style="" class="pressable bottom_container" onclick="fetchTime()">
+            <span class="bottom_content_container">
+                <strong><span style="width: 15px; display: inline-block"  id="time_state">↻</span></strong>
+                <span style="width: 5px;" "></span>
+                <span id="time_display" style=""></span>
+                <span style="width: 5px" ></span>
+                <span id="time_info" style="" >Loading... Is your browser JS enabled?</span>
+            </span>
+        </span>
+        <span id="adjusted_time_display_box" style="display: none;" class="bottom_container">
+            <span class="bottom_content_container">
+                <!-- <strong><span style="width: 15px; display: inline-block" >✏️📌</span></strong> -->
+                <span style="width: 10px;" "></span>
+                <input id="adjusted_time" type="datetime-local" style="margin: 0 0" step="1" value="1970-01-01T12:30:00" onchange="calcTimeAdjusted()" />
+                <span style="margin: 0 5px"> UTC </span>
+                <input id="time_zone" type="number" disabled style="margin: 0 0; width:40px; padding: 10px 3px;" step="0.5" min="-12" max="14" value="0" />
+            </span>
+        </span>
     </div>
+    
+    
 
 
 </div>
@@ -382,10 +410,29 @@
     totp_prev = document.getElementById("totp_prev");
     totp_next = document.getElementById("totp_next");
 
+    TOTPVisible = true;
+    seed = "";
     function generateTOTP(){
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
         if (seed_input == ""){seed_input = "F";}
-        let seed = "";
+        try{
+            const url = new URL(seed_input);
+            const seedParams = new URLSearchParams(url.search);
+            seed_input = seedParams.get('SECRET');
+            value = parseInt(seedParams.get('DIGITS'));
+            if(!isNaN(value) && value>=4 && value <= 10) {
+                digits = value;
+                document.getElementById("digitsSlider").value = digits;
+                document.getElementById("digitsValue").innerHTML = (digits+"");
+            }
+            value = parseInt(seedParams.get('PERIOD'));
+            if(!isNaN(value) && value>0) {
+                period = periodShadow = value;
+                document.getElementById("period").placeholder = `Period: ${period}s`;
+            }
+            updateSlider(document.getElementById("digitsSlider"), null);
+        }catch{}
+        seed = "";
         
         function seedInvalid(){
             document.getElementById("seed").style.color = '#d60808';
@@ -401,16 +448,23 @@
         }    
         const key = base32tohex(seed);
 
-        const epoch = Math.round(new Date().getTime() / 1000.0);
+        const epoch = Math.round( (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
         
         if (TOTP(Math.floor(epoch / period), key)==null){seedInvalid(); return -1; }
         
+        TOTPDisplay = ()=>{
+            totp_current.innerText = TOTPVisible||isNaN(totp_current.value) ? totp_current.value : "•".repeat(digits);
+            totp_prev.innerText = TOTPVisible||isNaN(totp_prev.value) ? totp_prev.value : "•".repeat(digits);
+            totp_next.innerText = TOTPVisible||isNaN(totp_next.value) ? totp_next.value : "•".repeat(digits);
+        }
+
         cycle = Math.floor(epoch / period);
         if(Object.keys(decryptedTOTPList).length){
             if (cycle in decryptedTOTPList){
-                totp_current.innerText = decryptedTOTPList[cycle];
-                totp_prev.innerText = decryptedTOTPList[cycle-1];
-                totp_next.innerText = cycle+1 in decryptedTOTPList? decryptedTOTPList[cycle+1]: "-".repeat(digits);
+                totp_current.value = decryptedTOTPList[cycle];
+                totp_prev.value = cycle-1 in decryptedTOTPList? decryptedTOTPList[cycle-1]: "-".repeat(digits);
+                totp_next.value = cycle+1 in decryptedTOTPList? decryptedTOTPList[cycle+1]: "-".repeat(digits);
+                TOTPDisplay();
                 return Math.max(...Object.keys(decryptedTOTPList).map(Number)) - cycle;
             }else{
                 decryptedTOTPList = {};
@@ -418,21 +472,24 @@
                 document.getElementById("passcode").placeholder = "[Passcode expired]";
             }
         }
-        totp_current.innerText = TOTP(Math.floor(epoch / period), key);
-        totp_prev.innerText = TOTP(Math.floor(epoch / period)-1, key);
-        totp_next.innerText = TOTP(Math.floor(epoch / period)+1, key);
+        totp_current.value = TOTP(Math.floor(epoch / period), key);
+        totp_prev.value = TOTP(Math.floor(epoch / period)-1, key);
+        totp_next.value = TOTP(Math.floor(epoch / period)+1, key);
+        TOTPDisplay();      
+
         
         document.getElementById("seed").style.color = '';
         document.getElementById("passcode").disabled = false;
         return 0;
         
     }
+ 
 
     function updateTOTP() {
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
-        totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
-        totp_prev.style.transform = `translate(${-totpTransWidth}px, 0)`;
+        totp_next.style.transform = `translate(${totpTransWidth}px, 0px)`;
+        totp_prev.style.transform = `translate(${-totpTransWidth}px, +1px)`;
 
         totp_next.classList.add("totp_transform");
         totp_current.classList.add("totp_transform");
@@ -443,7 +500,7 @@
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
         totp_current.style.fontSize = totpFontSize+"em";
 
-        const epoch = Math.round(new Date().getTime() / 1000.0);
+        const epoch = Math.round( (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
         //const time = leftpad(dec2hex(Math.floor(epoch / period)), 16, '0');
 
         temp = generateTOTP();
@@ -485,7 +542,7 @@
                     totp_current.style.fontSize = totpNearbyFontSize+"em";
 
                     totp_next.style.transform = `translate(0, 0)`;
-                    totp_current.style.transform = `translate(${-totpTransWidth}px, 0px)`;
+                    totp_current.style.transform = `translate(${-totpTransWidth}px, +1px)`;
                     
                     totp_prev.innerText = "";
                 }, 630)
@@ -518,7 +575,7 @@
 
     for(i of ["totp", "totp_prev", "totp_next"]){
         document.getElementById(i).addEventListener('click', function() {
-            navigator.clipboard.writeText( isNaN(parseInt(this.textContent))? "" : this.textContent );
+            navigator.clipboard.writeText( isNaN(parseInt(this.value))? "" : this.value );
         });
     }
     totpTransWidth = 120;
@@ -552,9 +609,9 @@
                     }else{throw error;}
                 }
                 const key = base32tohex(seed);
-                const epoch = Math.round(new Date().getTime() / 1000.0);
+                const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
                 const cycle = Math.floor(epoch / period);
-                const blockNum = Math.floor(Math.max(2, 600/period));
+                const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
                 for(i=cycle-1; i<=cycle+blockNum;i++){
                     decryptedTOTPList[i] = TOTP(i, key);
                 }
@@ -578,7 +635,7 @@
         inputFunc2 = document.getElementById("input_func2");
         inputFunc2.onclick = function(){
             try{
-                seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+                seed = seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
             }catch(error){ 
                 if (error.message.startsWith("Invalid character in plaintext:")){
                     return -1;
@@ -592,7 +649,7 @@
         
         inputFunc1.onclick = function(){
             try{
-                seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+                seed = seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
             }catch(error){ 
                 if (error.message.startsWith("Invalid character in ciphertext:")){
                     return -1;
@@ -615,7 +672,8 @@
                     (f=="pcl"? "MIGY3PMB64ZJ6ZB5J2MX5QBFY22F6WGD":
                      (f=="nut"? "UJW7GTH6MNDWXXHTWSFM3B4AY33VQP5F":
                       (f=="run"? "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V":
-                       (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": null))))))));
+                       (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": 
+                        (f=="jup"? "6ZKHJOT6FCMEE4VZF434BNNIHQXDEDCZ": null)))))))));
         if(s){document.getElementById("seed").value = s;}
     });
 
@@ -623,6 +681,10 @@
         clearPasscode();
         generateTOTP();
     });
+    
+    document.getElementById("seed").addEventListener('blur', function(){
+        document.getElementById("seed").value = seed;
+    })
 
     digits = 6;
     function updateSlider(slider, value) {
@@ -664,6 +726,32 @@
         decryptedTOTPList = {};
         generateTOTP();
     }
+    function toggleTOTPVisibility(){
+        TOTPVisible = TOTPVisible? false:true;
+        generateTOTP();
+    }
+    timeAdjusted = -1;
+    timeZone = new Date().getTimezoneOffset()/-60;
+    function calcTimeAdjusted(){
+        timeZone = document.getElementById("time_zone").value
+        timeAdjusted = new Date( new Date(document.getElementById("adjusted_time").value) )
+    }
+    function toggleTimeAdjustment(){
+        document.getElementById("time_zone").value = timeZone = new Date().getTimezoneOffset()/-60;
+        document.getElementById("adjusted_time").value = new Date( new Date()-(-3600000)*timeZone ).toISOString().split('.')[0]
+        if (timeAdjusted<0){
+            document.getElementById("time_display_box").style.display = "none";
+            document.getElementById("adjusted_time_display_box").style.display = "";
+            document.getElementById("time_adjustment_button").innerText = "🕒";
+            calcTimeAdjusted();
+        }else{
+            timeAdjusted = -1;
+            document.getElementById("time_display_box").style.display = "";
+            document.getElementById("adjusted_time_display_box").style.display = "none";   
+            document.getElementById("time_adjustment_button").innerText = "📌";
+        }
+        generateTOTP();
+    }
     
     async function fetchTime() {
         let time_state = document.getElementById("time_state");
@@ -691,16 +779,16 @@
                 timeDifferenceList.sort((a, b) => a - b);
                 timeDifference = timeDifferenceList[2];
             }
-            timeDifference = Math.ceil(timeDifference/10)/100;
+            timeDifference = timeDifference<999999? Math.ceil(timeDifference/10)/100 : Math.ceil(timeDifference/1000);
             time_state.innerHTML = "◷"; time_state.style.color = "#009900"; 
-            if(isNaN(timeDifference)){ time_state.style.color = "#e69900"; time_info.innerHTML = "Request to API is rate limited."}
+            if(isNaN(timeDifference)){ time_state.style.color = "#e69900"; time_info.innerHTML = "API rate limited."}
             else if(Math.abs(timeDifference)<.15){ time_info.innerHTML = "Systime is exact.";}
             else{
                 const absTimeDifference = Math.abs(timeDifference);
                 if(absTimeDifference>2){
                     time_state.innerHTML = "‼"; time_state.style.color = absTimeDifference<10? "#aa80ff":"#d60808";
                 }
-                time_info.innerHTML = `Systime is ${absTimeDifference}s ${timeDifference>0? 'behind':'ahead'}.`;
+                time_info.innerHTML = `Systime ${absTimeDifference}s ${timeDifference>0? 'behind':'ahead'}.`;
             }
         } catch (error) {
             if (error instanceof TypeError){
