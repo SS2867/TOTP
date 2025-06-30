@@ -525,7 +525,7 @@
                 totp_next.classList.remove('totp_active');
                 totp_next.style.fontSize = totpNearbyFontSize+"em";
             }
-            if(timeLeft===1){
+            if(timeLeft===1 && timeAdjusted<0){
                 /*function calculateOffset(src, target) {
                     const targetRect = target.getBoundingClientRect();
                     const srcRect = src.getBoundingClientRect();
