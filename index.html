@@ -473,7 +473,7 @@
             }
         }
         totp_current.value = TOTP(Math.floor(epoch / period), key);
-        totp_prev.value = TOTP(Math.floor(epoch / period)-1, key);
+        totp_prev.value = (Math.floor(epoch / period)>=1 ? TOTP(Math.floor(epoch / period)-1, key): "-".repeat(digits));
         totp_next.value = TOTP(Math.floor(epoch / period)+1, key);
         TOTPDisplay();      
 
