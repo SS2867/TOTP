@@ -797,7 +797,7 @@
         }
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.hash.substring(1));
     document.getElementById("seed").value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
     value = parseInt(urlParams.get('digits'));
     if(!isNaN(value) && value>=4 && value <= 10) {
