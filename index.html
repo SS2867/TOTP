@@ -176,11 +176,11 @@
     <h1>TOTP Generator</h1>
     <div style="display: flex; align-items: center; justify-content: center;">
         <input type="password" id="seed" placeholder="Enter Secret Seed" />
-        <button class="square_button" id="input_func1" style="" onmousedown="toggleSeedVisibility()">👁️</button>
+        <button class="square_button" id="input_func1" title="Show/Hide Seed" style="" onmousedown="toggleSeedVisibility()">👁️</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
-        <button class="square_button" disabled="" id="input_func2" style="" onmousedown="clearPasscode()">⨯</button>
+        <button class="square_button" disabled="" id="input_func2" title="Clear Passcode" style="" onmousedown="clearPasscode()">⨯</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
@@ -201,8 +201,8 @@
     </div>
     <div style="height: 10px;"></div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <button class="bottom_button" id="time_adjustment_backward" style="transform: translate(-90px, -29px)" onclick="toggleTimeAdjustmentBackward()"><</button>
-        <button class="bottom_button" id="time_adjustment_forward" style="transform: translate(+90px, -29px)" onclick="toggleTimeAdjustmentForward()">></button>
+        <button class="bottom_button" id="time_adjustment_backward" title="Locate to Previous Code" style="transform: translate(-90px, -29px)" onclick="toggleTimeAdjustmentBackward()"><</button>
+        <button class="bottom_button" id="time_adjustment_forward" title="Locate to Next Code" style="transform: translate(+90px, -29px)" onclick="toggleTimeAdjustmentForward()">></button>
         <span style="width: 85px; transform: translate(-120px, +1px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> ◀️▶️ -->
         <span style="width: 170px" class="totp pressable" id="totp">------</span>
@@ -211,8 +211,8 @@
     </div>
     <div style="height: 25px;"></div>
     <div style="display: flex; font-size: 0.75em; color:#878787; height: 25px;">
-        <button class="bottom_button" id="time_adjustment_button" style="" onclick="toggleTimeAdjustment()">📌</button>
-        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -82px)" onclick="toggleTOTPVisibility()">👁️</button>
+        <button class="bottom_button" id="time_adjustment_button" title="Enter Time Locate Mode" style="" onclick="toggleTimeAdjustment()">📌</button>
+        <button class="bottom_button" id="totp_visibility_button" title="Show/Hide Code" style="position:absolute;transform: translate(0, -82px)" onclick="toggleTOTPVisibility()">👁️</button>
     
         <span id="time_display_box" style="" class="pressable bottom_container" onclick="fetchTime()">
             <span class="bottom_content_container">
@@ -622,36 +622,39 @@
             inputFunc2 = document.getElementById("input_func2");
             inputFunc2.onmousedown = function(){clearPasscode()};
             inputFunc2.innerText = "⨯";
+            inputFunc2.title = "Clear Passcode";
             inputFunc2.disabled = passcode||Object.keys(decryptedTOTPList).length? false:true;
             inputFunc1.onmousedown = function(){toggleSeedVisibility()};
             inputFunc1.innerText = "👁️";
+            inputFunc1.title = "Show/Hide Seed";
             inputFunc1.disabled = false;
             if (passcodeInput.value){
                 passcodeInput.value = generateRandomString(20);
-                
-                let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-                if (seed_input == ""){seed_input = "0";}
-                let seed = "";
-                try{
-                    seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
-                }catch(error){ 
-                    if (error.message.startsWith("Invalid character in ciphertext:")){
-                        passcode = "";
-                        inputFunc2.disabled = true;
-                        return -1;
-                    }else{throw error;}
-                }
-                const key = base32tohex(seed);
-                const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
-                const cycle = Math.floor(epoch / period);
-                const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
-                for(i=cycle-1; i<=cycle+blockNum;i++){
-                    decryptedTOTPList[i] = TOTP(i, key);
-                }
-                
-                passcodeInput.value = "";
-                passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
-                passcode = "";
+                setTimeout(function(){
+                    let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+                    if (seed_input == ""){seed_input = "0";}
+                    let seed = "";
+                    try{
+                        seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+                    }catch(error){ 
+                        if (error.message.startsWith("Invalid character in ciphertext:")){
+                            passcode = "";
+                            inputFunc2.disabled = true;
+                            return -1;
+                        }else{throw error;}
+                    }
+                    const key = base32tohex(seed);
+                    const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
+                    const cycle = Math.floor(epoch / period);
+                    const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
+                    for(i=cycle-1; i<=cycle+blockNum;i++){
+                        decryptedTOTPList[i] = TOTP(i, key);
+                    }
+                    
+                    passcodeInput.value = "";
+                    passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
+                    passcode = "";
+                }, 150)
             }
             generateTOTP();
         }, 100)
@@ -680,6 +683,7 @@
         };
         inputFunc2.innerText = "🔒";
         inputFunc2.disabled = false;
+        inputFunc2.title = "Encrypt Seed";
         
         inputFunc1.onmousedown = function(){
             try{
@@ -695,6 +699,7 @@
         };
         inputFunc1.innerText = "🔑";
         inputFunc1.disabled = false;
+        inputFunc1.title = "Decrypt Seed";
     });
 
     document.getElementById('digitsValue').addEventListener('mousedown', function() {
