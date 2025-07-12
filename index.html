@@ -616,7 +616,11 @@
     passcode = "";
     passcodeLen = 0;
     decryptedTOTPList = {};
-    document.getElementById("passcode").addEventListener('blur', function(){setTimeout(function() {
+    document.getElementById("passcode").addEventListener('blur', passcodeInputBlur);
+    document.getElementById("passcode").addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {passcodeInputBlur(0);}
+    });
+    function passcodeInputBlur(timeout1=100){setTimeout(function() {
             passcodeInput = document.getElementById("passcode");
             inputFunc1 = document.getElementById("input_func1");
             inputFunc2 = document.getElementById("input_func2");
@@ -631,23 +635,26 @@
             if (passcodeInput.value){
                 passcodeInput.value = generateRandomString(20);
                 setTimeout(function(){
+                    
                     let seed_input = document.getElementById("seed").value.trim().toUpperCase();
                     if (seed_input == ""){seed_input = "0";}
                     let seed = "";
+                    
                     try{
                         seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
                     }catch(error){ 
                         if (error.message.startsWith("Invalid character in ciphertext:")){
                             passcode = "";
                             inputFunc2.disabled = true;
-                            return -1;
                         }else{throw error;}
                     }
                     const key = base32tohex(seed);
+                    
                     const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
                     const cycle = Math.floor(epoch / period);
                     const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
-                    for(i=cycle-1; i<=cycle+blockNum;i++){
+                    
+                    for( i=Math.max(cycle-1, 0) ; i<=cycle+blockNum;i++){
                         decryptedTOTPList[i] = TOTP(i, key);
                     }
                     
@@ -657,8 +664,8 @@
                 }, 150)
             }
             generateTOTP();
-        }, 100)
-    });
+        }, timeout1)
+    }
     document.getElementById("passcode").addEventListener('input', function() {
         passcodeInput = document.getElementById("passcode");
         passcode = encrypt(passcodeInput.value, "haulvnebalIfv"+passcodeSalt);
