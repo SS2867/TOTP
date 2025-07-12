@@ -109,7 +109,7 @@
         }
         .input_error {
             border-color: red !important;
-            border-width: 1px;
+            border-width: 2px;
             border-style: solid; 
         }
         .progress-container {
@@ -478,7 +478,9 @@
             }else{
                 decryptedTOTPList = {};
                 clearPasscode();
-                document.getElementById("passcode").placeholder = "[Passcode expired]";
+                passcodeInput.placeholder = "[Passcode expired]";
+                passcodeInput.classList.add("input_error");
+                setTimeout( ()=>passcodeInput.classList.remove("input_error"), 1500);
             }
         }
         totp_current.value = TOTP(Math.floor(epoch / period), key);
@@ -656,7 +658,7 @@
             inputFunc1.innerText = "👁️";
             inputFunc1.disabled = false;
             if (document.getElementById("passcode").value){
-                passcodeInput.value = "";
+                passcodeInput.value = generateRandomString(20);
                 
                 let seed_input = document.getElementById("seed").value.trim().toUpperCase();
                 if (seed_input == ""){seed_input = "F";}
@@ -678,6 +680,7 @@
                     decryptedTOTPList[i] = TOTP(i, key);
                 }
                 
+                passcodeInput.value = "";
                 passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
                 passcode = "";
             }
