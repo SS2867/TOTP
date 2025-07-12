@@ -176,11 +176,11 @@
     <h1>TOTP Generator</h1>
     <div style="display: flex; align-items: center; justify-content: center;">
         <input type="password" id="seed" placeholder="Enter Secret Seed" />
-        <button class="square_button" id="input_func1" style="" onclick="toggleSeedVisibility()">👁️</button>
+        <button class="square_button" id="input_func1" style="" onmousedown="toggleSeedVisibility()">👁️</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <input type="password" id="passcode" placeholder="Enter Passcode (if any)" />
-        <button class="square_button" disabled="" id="input_func2" style="" onclick="clearPasscode()">⨯</button>
+        <button class="square_button" disabled="" id="input_func2" style="" onmousedown="clearPasscode()">⨯</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: center;">
         <div class="slider-container" >
@@ -201,8 +201,8 @@
     </div>
     <div style="height: 10px;"></div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <button class="bottom_button" id="time_adjustment_backward" style="transform: translate(-90px, -27px)" onclick="toggleTimeAdjustmentBackward()"><</button>
-        <button class="bottom_button" id="time_adjustment_forward" style="transform: translate(+90px, -27px)" onclick="toggleTimeAdjustmentForward()">></button>
+        <button class="bottom_button" id="time_adjustment_backward" style="transform: translate(-90px, -29px)" onclick="toggleTimeAdjustmentBackward()"><</button>
+        <button class="bottom_button" id="time_adjustment_forward" style="transform: translate(+90px, -29px)" onclick="toggleTimeAdjustmentForward()">></button>
         <span style="width: 85px; transform: translate(-120px, +1px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> ◀️▶️ -->
         <span style="width: 170px" class="totp pressable" id="totp">------</span>
@@ -212,7 +212,7 @@
     <div style="height: 25px;"></div>
     <div style="display: flex; font-size: 0.75em; color:#878787; height: 25px;">
         <button class="bottom_button" id="time_adjustment_button" style="" onclick="toggleTimeAdjustment()">📌</button>
-        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -80px)" onclick="toggleTOTPVisibility()">👁️</button>
+        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -82px)" onclick="toggleTOTPVisibility()">👁️</button>
     
         <span id="time_display_box" style="" class="pressable bottom_container" onclick="fetchTime()">
             <span class="bottom_content_container">
@@ -422,7 +422,7 @@
     seed = "";
     function generateTOTP(){
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-        if (seed_input == ""){seed_input = "F";}
+        if (seed_input == ""){seed_input = "0";}
         try{
             const url = new URL(seed_input);
             const seedParams = new URLSearchParams(url.search);
@@ -445,7 +445,6 @@
         function seedInvalid(){
             document.getElementById("seed").style.color = '#d60808';
             document.getElementById("seed").classList.add("input_error");
-            document.getElementById("passcode").disabled = true;
         }
 
         try{
@@ -465,6 +464,11 @@
             totp_current.innerText = TOTPVisible||isNaN(totp_current.value) ? totp_current.value : "•".repeat(digits);
             totp_prev.innerText = TOTPVisible||isNaN(totp_prev.value) ? totp_prev.value : "•".repeat(digits);
             totp_next.innerText = TOTPVisible||isNaN(totp_next.value) ? totp_next.value : "•".repeat(digits);
+            
+            if(!isNaN(totp_current.value)){
+                document.getElementById("seed").style.color = '';
+                document.getElementById("seed").classList.remove("input_error");
+            }
         }
 
         cycle = Math.floor(epoch / period);
@@ -490,10 +494,6 @@
         else{document.getElementById("time_adjustment_backward").removeAttribute("disabled");}
         TOTPDisplay();      
 
-        
-        document.getElementById("seed").style.color = '';
-        document.getElementById("seed").classList.remove("input_error");
-        document.getElementById("passcode").disabled = false;
         return 0;
         
     }
@@ -502,11 +502,14 @@
     animationLock = false;
     function updateTOTP() {
         if(animationLock){return -1;}
+        [totp_prev, totp_current, totp_next].forEach(element => {
+            element.classList.add("totp_transform");
+        });
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
         totp_next.style.transform = `translate(${totpTransWidth}px, 0px)`;
-        document.getElementById("time_adjustment_backward").style.transform = `translate(${-0.75*totpTransWidth}px, -27px)`;
-        document.getElementById("time_adjustment_forward").style.transform = `translate(${0.75*totpTransWidth}px, -27px)`;
+        document.getElementById("time_adjustment_backward").style.transform = `translate(${-0.75*totpTransWidth}px, -29px)`;
+        document.getElementById("time_adjustment_forward").style.transform = `translate(${0.75*totpTransWidth}px, -29px)`;
         totp_prev.style.transform = `translate(${-totpTransWidth}px, +1px)`;
 
         totpFontSize = Math.min(1.55, 1.55*8 / digits);
@@ -536,48 +539,13 @@
                 progressBar.style.setProperty('background', (timeAdjusted<0?'#f36831':'#c4aca3') ); 
                 totp_next.classList.add('totp_active');
                 totp_next.style.fontSize = totpActiveFontSize+"em";
-                
             }else{
                 totp_next.classList.remove('totp_active');
                 totp_next.style.fontSize = totpNearbyFontSize+"em";
             }
             if(timeLeft<.5 && timeLeft>.3 && timeAdjusted<0){
-                /*function calculateOffset(src, target) {
-                    const targetRect = target.getBoundingClientRect();
-                    const srcRect = src.getBoundingClientRect();
-
-                    return {
-                        X: targetRect.right - srcRect.right - (targetRect.width - srcRect.width)/2,
-                        Y: targetRect.top - srcRect.top + (targetRect.height - srcRect.height)/2
-                    };
-                }*/
                 animationLock = true;
-                setTimeout(() => {TOTPTransformAnimation(.3);}, Math.max(timeLeft-.3, 0) ); 
-                /*setTimeout(() => {
-                    totp_next.style.fontSize = totpFontSize+"em";
-                    totp_next.style.width = "160px";
-                    totp_current.style.fontSize = totpNearbyFontSize+"em";
-
-                    totp_next.style.transform = `translate(0, 0)`;
-                    totp_current.style.transform = `translate(${-totpTransWidth}px, +1px)`;
-                    
-                    totp_prev.innerText = "";
-                }, 630)
-                setTimeout(() => {
-                    totp_next.classList.remove('totp_transform');
-                    totp_current.classList.remove('totp_transform');
-
-                    totp_prev.innerText = totp_current.innerText;
-                    totp_current.innerText = totp_next.innerText;
-                    totp_next.innerText="";
-
-                    totp_next.style.fontSize = totpNearbyFontSize+"em";
-                    totp_next.style.width = "80px";
-                    totp_current.style.fontSize = totpFontSize+"em";
-
-                    totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
-                    totp_current.style.transform = `translate(0, 0)`;
-                }, 950);*/
+                setTimeout(() => {TOTPTransformAnimation(.3);}, Math.max(timeLeft-.3, 0)*1000 ); 
             }
         }else{ 
             totp_current.innerText = "-".repeat(digits);
@@ -633,6 +601,7 @@
 
             A.style.transform = `translate(${(direction==0?-1:1)*totpTransWidth}px, 0)`;
             totp_current.style.transform = `translate(0, 0)`;
+            totp_next.classList.remove("totp_active");
             animationLock = false;
         }, speed*1000);
     }
@@ -651,17 +620,17 @@
             passcodeInput = document.getElementById("passcode");
             inputFunc1 = document.getElementById("input_func1");
             inputFunc2 = document.getElementById("input_func2");
-            inputFunc2.onclick = function(){clearPasscode()};
+            inputFunc2.onmousedown = function(){clearPasscode()};
             inputFunc2.innerText = "⨯";
             inputFunc2.disabled = passcode||Object.keys(decryptedTOTPList).length? false:true;
-            inputFunc1.onclick = function(){toggleSeedVisibility()};
+            inputFunc1.onmousedown = function(){toggleSeedVisibility()};
             inputFunc1.innerText = "👁️";
             inputFunc1.disabled = false;
-            if (document.getElementById("passcode").value){
+            if (passcodeInput.value){
                 passcodeInput.value = generateRandomString(20);
                 
                 let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-                if (seed_input == ""){seed_input = "F";}
+                if (seed_input == ""){seed_input = "0";}
                 let seed = "";
                 try{
                     seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
@@ -685,7 +654,7 @@
                 passcode = "";
             }
             generateTOTP();
-        }, 200)
+        }, 100)
     });
     document.getElementById("passcode").addEventListener('input', function() {
         passcodeInput = document.getElementById("passcode");
@@ -698,7 +667,7 @@
         seedInput = document.getElementById("seed");
         inputFunc1 = document.getElementById("input_func1");
         inputFunc2 = document.getElementById("input_func2");
-        inputFunc2.onclick = function(){
+        inputFunc2.onmousedown = function(){
             try{
                 seed = seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
             }catch(error){ 
@@ -712,7 +681,7 @@
         inputFunc2.innerText = "🔒";
         inputFunc2.disabled = false;
         
-        inputFunc1.onclick = function(){
+        inputFunc1.onmousedown = function(){
             try{
                 seed = seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
             }catch(error){ 
@@ -728,7 +697,7 @@
         inputFunc1.disabled = false;
     });
 
-    document.getElementById('digitsValue').addEventListener('click', function() {
+    document.getElementById('digitsValue').addEventListener('mousedown', function() {
         let f = document.getElementById('passcode').value.slice(1);
         let s = (f=="goo"? "OZZY4NXW4NHTB6BLIPU7JZIW7IDRZS5I" :
                  (f=="out"? "23IUTFH5ZDPKYBIH5WYJRLVPZIOJV2BD":
@@ -739,7 +708,7 @@
                       (f=="run"? "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V":
                        (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": 
                         (f=="jup"? "6ZKHJOT6FCMEE4VZF434BNNIHQXDEDCZ": null)))))))));
-        if(s){document.getElementById("seed").value = s;}
+        if(s){document.getElementById("seed").value = seed = s;}
     });
 
     document.getElementById("seed").addEventListener('input', function() {
@@ -748,7 +717,7 @@
     });
     
     document.getElementById("seed").addEventListener('blur', function(){
-        if(seed){document.getElementById("seed").value = seed;}
+        if(seed && seed!="0"){document.getElementById("seed").value = seed;}
     })
 
     digits = 6;
