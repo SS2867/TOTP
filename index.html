@@ -422,7 +422,7 @@
     seed = "";
     function generateTOTP(){
         let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-        if (seed_input == ""){seed_input = "0";}
+        if (seed_input == ""){seed_input = "F";}
         try{
             const url = new URL(seed_input);
             const seedParams = new URLSearchParams(url.search);
@@ -620,53 +620,61 @@
     document.getElementById("passcode").addEventListener("keydown", function(event) {
         if (event.key === "Enter") {passcodeInputBlur(0);}
     });
+    passcodeInputBlurLock = false;
     function passcodeInputBlur(timeout1=100){setTimeout(function() {
-            passcodeInput = document.getElementById("passcode");
-            inputFunc1 = document.getElementById("input_func1");
-            inputFunc2 = document.getElementById("input_func2");
-            inputFunc2.onmousedown = function(){clearPasscode()};
-            inputFunc2.innerText = "⨯";
-            inputFunc2.title = "Clear Passcode";
-            inputFunc2.disabled = passcode||Object.keys(decryptedTOTPList).length? false:true;
-            inputFunc1.onmousedown = function(){toggleSeedVisibility()};
-            inputFunc1.innerText = "👁️";
-            inputFunc1.title = "Show/Hide Seed";
-            inputFunc1.disabled = false;
-            if (passcodeInput.value){
-                passcodeInput.value = generateRandomString(20);
-                setTimeout(function(){
-                    
-                    let seed_input = document.getElementById("seed").value.trim().toUpperCase();
-                    if (seed_input == ""){seed_input = "0";}
-                    let seed = "";
-                    
-                    try{
-                        seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
-                    }catch(error){ 
-                        if (error.message.startsWith("Invalid character in ciphertext:")){
-                            passcode = "";
-                            inputFunc2.disabled = true;
-                        }else{throw error;}
-                    }
-                    const key = base32tohex(seed);
-                    
-                    const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
-                    const cycle = Math.floor(epoch / period);
-                    const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
-                    
-                    for( i=Math.max(cycle-1, 0) ; i<=cycle+blockNum;i++){
-                        decryptedTOTPList[i] = TOTP(i, key);
-                    }
-                    
-                    passcodeInput.value = "";
-                    passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
+        passcodeInput = document.getElementById("passcode");
+        inputFunc1 = document.getElementById("input_func1");
+        inputFunc2 = document.getElementById("input_func2");
+        inputFunc2.onmousedown = function(){clearPasscode()};
+        inputFunc2.innerText = "⨯";
+        inputFunc2.title = "Clear Passcode";
+        inputFunc2.disabled = passcode||Object.keys(decryptedTOTPList).length? false:true;
+        inputFunc1.onmousedown = function(){toggleSeedVisibility()};
+        inputFunc1.innerText = "👁️";
+        inputFunc1.title = "Show/Hide Seed";
+        inputFunc1.disabled = false;
+        if (passcodeInputBlurLock){
+            passcodeInput.value = "";
+            return;
+        }
+        if (passcodeInput.value){
+            passcodeInputBlurLock = true;
+
+            let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+            if (seed_input == ""){seed_input = "F";}
+            let seed = "";
+            
+            try{
+                seed = decrypt(seed_input, decrypt(passcode, "haulvnebalIfv"+passcodeSalt), validChars = base32chars);
+            }catch(error){ 
+                if (error.message.startsWith("Invalid character in ciphertext:")){
                     passcode = "";
-                }, 150)
+                    inputFunc2.disabled = true;
+                }else{throw error;}
             }
-            generateTOTP();
-        }, timeout1)
-    }
+            const key = base32tohex(seed);
+            
+            const epoch = Math.round(  (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
+            const cycle = Math.floor(epoch / period);
+            const blockNum = Math.floor(Math.min(Math.max(1, 600/period), 120));
+            
+            for( i=Math.max(cycle-1, 0) ; i<=cycle+blockNum;i++){
+                decryptedTOTPList[i] = TOTP(i, key);
+            }
+
+            passcodeInput.value = generateRandomString(20);
+            setTimeout(function(){
+                
+                passcodeInput.value = "";
+                passcodeInput.placeholder = `[${blockNum} blocks left] ` +"•".repeat(passcodeLen);
+                passcode = "";
+                passcodeInputBlurLock = false;
+            }, 150)
+        }
+        generateTOTP();
+    }, timeout1)}
     document.getElementById("passcode").addEventListener('input', function() {
+        if(passcodeInputBlurLock){return;}
         passcodeInput = document.getElementById("passcode");
         passcode = encrypt(passcodeInput.value, "haulvnebalIfv"+passcodeSalt);
         passcodeLen = passcode.length;
@@ -729,7 +737,7 @@
     });
     
     document.getElementById("seed").addEventListener('blur', function(){
-        if(seed && seed!="0"){document.getElementById("seed").value = seed;}
+        if(seed && seed!="F"){document.getElementById("seed").value = seed;}
     })
 
     digits = 6;
