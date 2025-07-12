@@ -107,6 +107,11 @@
                 color: #cb63ff;
             }
         }
+        .input_error {
+            border-color: red !important;
+            border-width: 1px;
+            border-style: solid; 
+        }
         .progress-container {
             width: 90%;
             background: #e0e0e0;
@@ -194,9 +199,12 @@
         </div>
         <span id="progress-text" style="width: 10%; font-size: 0.75em;">time</span>
     </div>
+    <div style="height: 10px;"></div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
+        <button class="bottom_button" id="time_adjustment_backward" style="transform: translate(-90px, -27px)" onclick="toggleTimeAdjustmentBackward()"><</button>
+        <button class="bottom_button" id="time_adjustment_forward" style="transform: translate(+90px, -27px)" onclick="toggleTimeAdjustmentForward()">></button>
         <span style="width: 85px; transform: translate(-120px, +1px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
-        <!-- <span style="width: 20px"></span> -->
+        <!-- <span style="width: 20px"></span> ◀️▶️ -->
         <span style="width: 170px" class="totp pressable" id="totp">------</span>
         <!-- <span style="width: 20px"></span> -->
         <span style="width: 85px; transform: translate(120px, 0px);" class="totp totp_nearby totp_transform pressable" id="totp_next">------</span>
@@ -204,7 +212,7 @@
     <div style="height: 25px;"></div>
     <div style="display: flex; font-size: 0.75em; color:#878787; height: 25px;">
         <button class="bottom_button" id="time_adjustment_button" style="" onclick="toggleTimeAdjustment()">📌</button>
-        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -75px)" onclick="toggleTOTPVisibility()">👁️</button>
+        <button class="bottom_button" id="totp_visibility_button" style="position:absolute;transform: translate(0, -80px)" onclick="toggleTOTPVisibility()">👁️</button>
     
         <span id="time_display_box" style="" class="pressable bottom_container" onclick="fetchTime()">
             <span class="bottom_content_container">
@@ -436,6 +444,7 @@
         
         function seedInvalid(){
             document.getElementById("seed").style.color = '#d60808';
+            document.getElementById("seed").classList.add("input_error");
             document.getElementById("passcode").disabled = true;
         }
 
@@ -448,7 +457,7 @@
         }    
         const key = base32tohex(seed);
 
-        const epoch = Math.round( (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
+        const epoch = Math.floor( (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
         
         if (TOTP(Math.floor(epoch / period), key)==null){seedInvalid(); return -1; }
         
@@ -475,24 +484,28 @@
         totp_current.value = TOTP(Math.floor(epoch / period), key);
         totp_prev.value = (Math.floor(epoch / period)>=1 ? TOTP(Math.floor(epoch / period)-1, key): "-".repeat(digits));
         totp_next.value = TOTP(Math.floor(epoch / period)+1, key);
+        if(Math.floor(epoch / period)==0){document.getElementById("time_adjustment_backward").setAttribute("disabled", "");}
+        else{document.getElementById("time_adjustment_backward").removeAttribute("disabled");}
         TOTPDisplay();      
 
         
         document.getElementById("seed").style.color = '';
+        document.getElementById("seed").classList.remove("input_error");
         document.getElementById("passcode").disabled = false;
         return 0;
         
     }
  
-
+    totpTransWidth = 120;
+    animationLock = false;
     function updateTOTP() {
+        if(animationLock){return -1;}
 
         totpTransWidth = document.getElementsByClassName("container")[0].getBoundingClientRect().width/2-50;
         totp_next.style.transform = `translate(${totpTransWidth}px, 0px)`;
+        document.getElementById("time_adjustment_backward").style.transform = `translate(${-0.75*totpTransWidth}px, -27px)`;
+        document.getElementById("time_adjustment_forward").style.transform = `translate(${0.75*totpTransWidth}px, -27px)`;
         totp_prev.style.transform = `translate(${-totpTransWidth}px, +1px)`;
-
-        totp_next.classList.add("totp_transform");
-        totp_current.classList.add("totp_transform");
 
         totpFontSize = Math.min(1.55, 1.55*8 / digits);
         totpNearbyFontSize = Math.min(0.72, 0.72*8 / digits);
@@ -500,7 +513,7 @@
         totp_prev.style.fontSize = totpNearbyFontSize+"em";
         totp_current.style.fontSize = totpFontSize+"em";
 
-        const epoch = Math.round( (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0);
+        const epoch = (timeAdjusted>=0? timeAdjusted : new Date().getTime()) / 1000.0;
         //const time = leftpad(dec2hex(Math.floor(epoch / period)), 16, '0');
 
         temp = generateTOTP();
@@ -510,14 +523,15 @@
                 document.getElementById("passcode").placeholder = `[${temp} blocks left] ` +"•".repeat(passcodeLen);
             }
             progressBar = document.getElementById("progressBar");
-            progressBar.value = (1-Math.ceil(epoch % period)/period)*100;
+            progressBar.value = (1-Math.floor(epoch % period)/period)*100;
             progressBar.style.width = progressBar.value+"%";
-            progressBar.style.setProperty('background', '#76c7c0'); 
+            progressBar.style.setProperty('background', (timeAdjusted<0?'#76c7c0':"#bec9c9") ); 
             let timeLeft = (period- epoch%period)
-            document.getElementById("progress-text").innerText = timeLeft+"s"
+            document.getElementById("progress-text").innerText = Math.ceil(timeLeft)+"s"
             if(timeLeft/period<=0.2 && timeLeft<=120 || timeLeft<=1){
-                
-                progressBar.style.setProperty('background', '#f36831'); 
+                totp_next.classList.add("totp_transform");
+                totp_current.classList.add("totp_transform");
+                progressBar.style.setProperty('background', (timeAdjusted<0?'#f36831':'#c4aca3') ); 
                 totp_next.classList.add('totp_active');
                 totp_next.style.fontSize = totpActiveFontSize+"em";
                 
@@ -525,7 +539,7 @@
                 totp_next.classList.remove('totp_active');
                 totp_next.style.fontSize = totpNearbyFontSize+"em";
             }
-            if(timeLeft===1 && timeAdjusted<0){
+            if(timeLeft<.5 && timeLeft>.3 && timeAdjusted<0){
                 /*function calculateOffset(src, target) {
                     const targetRect = target.getBoundingClientRect();
                     const srcRect = src.getBoundingClientRect();
@@ -535,8 +549,9 @@
                         Y: targetRect.top - srcRect.top + (targetRect.height - srcRect.height)/2
                     };
                 }*/
-
-                setTimeout(() => {
+                animationLock = true;
+                setTimeout(() => {TOTPTransformAnimation(.3);}, Math.max(timeLeft-.3, 0) ); 
+                /*setTimeout(() => {
                     totp_next.style.fontSize = totpFontSize+"em";
                     totp_next.style.width = "160px";
                     totp_current.style.fontSize = totpNearbyFontSize+"em";
@@ -560,7 +575,7 @@
 
                     totp_next.style.transform = `translate(${totpTransWidth}px, 0)`;
                     totp_current.style.transform = `translate(0, 0)`;
-                }, 950);
+                }, 950);*/
             }
         }else{ 
             totp_current.innerText = "-".repeat(digits);
@@ -571,6 +586,53 @@
             totp_next.classList.remove('totp_active');
             totp_next.style.fontSize = totpNearbyFontSize+"em";
         }
+    }
+    function TOTPTransformAnimation(speed=.3, direction=1){
+        //direction =   1:forward  0:backward
+        animationLock = true;
+        Array.from(document.styleSheets).forEach(sheet => {
+            try {
+                const rules = sheet.cssRules || sheet.rules;
+                Array.from(rules).forEach(rule => {
+                    if (rule.selectorText === '.totp_transform') {
+                        rule.style.transition = `transform ${speed}s ease 0s, font-size ${speed}s ease 0s, width ${speed}s ease 0s`;
+                    }});
+            } catch (e) {console.log(e);}
+        });
+
+        A = direction==0? totp_prev: totp_next;
+        B = direction==0? totp_next: totp_prev;
+        [A, totp_current].forEach(element => {
+            element.classList.add("totp_transform");
+        });
+
+        setTimeout(() => {
+            A.style.fontSize = totpFontSize+"em";
+            A.style.width = "160px";
+            totp_current.style.fontSize = totpNearbyFontSize+"em";
+
+            A.style.transform = `translate(0, 0)`;
+            totp_current.style.transform = `translate(${(direction==0?1:-1)*totpTransWidth}px, +1px)`;
+            
+            B.innerText = "";
+        }, 0)
+        setTimeout(() => {
+            [A, totp_current, B].forEach(element => {
+                element.classList.remove("totp_transform");
+            });
+
+            B.innerText = totp_current.innerText;
+            totp_current.innerText = A.innerText;
+            A.innerText="";
+
+            A.style.fontSize = totpNearbyFontSize+"em";
+            A.style.width = "80px";
+            totp_current.style.fontSize = totpFontSize+"em";
+
+            A.style.transform = `translate(${(direction==0?-1:1)*totpTransWidth}px, 0)`;
+            totp_current.style.transform = `translate(0, 0)`;
+            animationLock = false;
+        }, speed*1000);
     }
 
     for(i of ["totp", "totp_prev", "totp_next"]){
@@ -683,7 +745,7 @@
     });
     
     document.getElementById("seed").addEventListener('blur', function(){
-        document.getElementById("seed").value = seed;
+        if(seed){document.getElementById("seed").value = seed;}
     })
 
     digits = 6;
@@ -735,10 +797,15 @@
     function calcTimeAdjusted(){
         timeZone = document.getElementById("time_zone").value
         timeAdjusted = new Date( new Date(document.getElementById("adjusted_time").value) )
+        if( isNaN(timeAdjusted) ){
+            timeAdjusted = isNaN(timeAdjusted)? -1 : timeAdjusted;
+            document.getElementById("adjusted_time").classList.add("input_error");
+        }
     }
     function toggleTimeAdjustment(){
         document.getElementById("time_zone").value = timeZone = new Date().getTimezoneOffset()/-60;
-        document.getElementById("adjusted_time").value = new Date( new Date()-(-3600000)*timeZone ).toISOString().split('.')[0]
+        document.getElementById("adjusted_time").value = new Date( new Date()-(-3600000)*timeZone ).toISOString().split('.')[0];
+        document.getElementById("adjusted_time").classList.remove("input_error");
         if (timeAdjusted<0){
             document.getElementById("time_display_box").style.display = "none";
             document.getElementById("adjusted_time_display_box").style.display = "";
@@ -752,6 +819,23 @@
         }
         generateTOTP();
     }
+    function toggleTimeAdjustmentForward(){
+        if(timeAdjusted<0) {toggleTimeAdjustment();}
+        document.getElementById("adjusted_time").value = new Date( timeAdjusted-(-period)*1000-(-3600000)*timeZone ).toISOString().split('.')[0];
+        calcTimeAdjusted();
+        TOTPTransformAnimation(speed=.1, direction=1);
+        setTimeout(generateTOTP, 100);
+
+    }
+    function toggleTimeAdjustmentBackward(){
+        if(timeAdjusted<0) {toggleTimeAdjustment();}
+        document.getElementById("adjusted_time").value = new Date( timeAdjusted-period*1000-(-3600000)*timeZone ).toISOString().split('.')[0];
+        calcTimeAdjusted();
+        TOTPTransformAnimation(speed=.1, direction=0);
+        setTimeout(generateTOTP, 100);
+
+    }
+    
     
     async function fetchTime() {
         let time_state = document.getElementById("time_state");
@@ -811,7 +895,7 @@
         document.getElementById("period").placeholder = `Period: ${period}s`;
     }
     updateSlider(document.getElementById("digitsSlider"), null);
-    updateTOTP(); setInterval(updateTOTP, 1000); 
+    updateTOTP(); setInterval(updateTOTP, 200); 
     fetchTime(); setInterval(function(){document.getElementById("time_display").innerHTML = new Date().toLocaleString();}, 50);
 </script>
 
