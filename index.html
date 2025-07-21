@@ -356,6 +356,170 @@
         }
         return result;
     }
+
+    (function() {
+        'use strict';
+
+        // 创建覆盖层样式
+        const style = document.createElement('style');
+        style.textContent = `
+            .length-indicator {
+                position: absolute;
+                background: rgba(255, 255, 255, 1);
+                margin: 3px;
+                border: 2px solid #546A76;
+                border-radius: 3px;
+                padding: 0;
+                font-size: 14px;
+                color: #606060;
+                pointer-events: none;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.2s;
+                opacity: 0;
+            }
+            .length-indicator.active {
+            opacity: 1;
+            transition: none;
+            }
+            .active {
+                opacity: 1;
+            }
+            .password-overlay{
+                font-size: 20px;
+                font-weight: 600;
+                margin: 0px;
+                color: #952820;
+            }
+
+        `;
+        document.head.appendChild(style);
+
+        // 创建覆盖层元素
+        const overlay = document.createElement('div');
+        overlay.className = 'length-indicator';
+
+        const indicatorSpan = document.createElement('span');
+        indicatorSpan.className = 'length-indicator';
+        indicatorSpan.textContent = '0';
+
+        overlay.appendChild(document.createElement('span')); // 空的span
+        overlay.appendChild(indicatorSpan);
+        document.body.appendChild(overlay);
+
+        let currentInput = null;
+        let hideTimer = null;
+
+        // 显示覆盖层
+        let overlayShowing = false;
+        function showOverlay(input) {
+
+            currentInput = input;
+
+            if (!isPassword(input)){hideOverlay(); return;}
+
+            overlay.style.transition = "none";
+            overlayShowing = true;
+
+            updateOverlayPosition();
+            updateLength();
+            overlay.classList.add('active');
+            overlay.style.transition = "";
+        }
+
+        // 隐藏覆盖层
+        function hideOverlay() {
+            overlay.classList.remove('active');
+            currentInput = null;
+            overlayShowing = false;
+
+            clearTimeout(hideTimer);
+            hideTimer = null;
+        }
+
+        const throttle = (func, wait = 100) => {
+        let lastExec = 0;
+        let timeout;
+        return (...args) => {
+            const elapsed = Date.now() - lastExec;
+            const later = () => {
+            timeout = null;
+            lastExec = Date.now();
+            func.apply(this, args);
+            };
+
+            if (!timeout) {
+            if (elapsed > wait) {
+                later(); // 立即执行
+            } else {
+                timeout = setTimeout(later, wait - elapsed); // 剩余时间后执行
+            }
+            }
+        };
+        };
+
+        const updateLength = throttle(()=>{if(currentInput){overlay.textContent = currentInput.value.length;}} , 50 );
+
+        // 更新覆盖层位置
+        const updateOverlayPosition = throttle(() => {
+            if (!currentInput) return;
+
+            const rect = currentInput.getBoundingClientRect();
+            if(hideTimer && currentInput.value.length>0){
+            overlay.classList.add("password-overlay");
+            overlay.style.width = `${rect.width}px`;
+            overlay.style.height = `${rect.height}px`;
+            overlay.style.top = `${rect.top + window.scrollY}px`;
+            overlay.style.left = `${rect.left + window.scrollX}px`;
+            }else{
+            overlay.classList.remove("password-overlay");
+            overlay.style.width = ``;
+            overlay.style.height = `15px`;
+            overlay.style.top = `${rect.top + window.scrollY - 15 }px`;
+            overlay.style.left = `${rect.left + window.scrollX}px`;
+            }
+        }, 50);
+
+        // 延迟隐藏
+        function delayedHide(time = 1200) {
+            clearTimeout(hideTimer);
+            hideTimer = setTimeout(hideOverlay, time);
+        }
+
+        function isPassword(el){
+        return el.type==='password' || (el.type==='textarea' && !["none", "", null, undefined].some(item => getComputedStyle(el).webkitTextSecurity === item));
+        }
+
+
+        // 监听所有密码输入框
+        document.addEventListener('focus', function(e) {
+            if ( isPassword(e.target) ) {
+                showOverlay(e.target);
+                updateOverlayPosition();
+            }
+        }, true);
+
+
+        document.addEventListener('input', function(e) {
+            if ( isPassword(e.target) ) {
+                delayedHide();
+                showOverlay(e.target);
+            }else{hideOverlay();}
+        }, true);
+
+        document.addEventListener('blur', function(e) {
+            if(hideTimer){delayedHide(900);} else {hideOverlay();}
+        }, true);
+
+        // 处理页面滚动和窗口大小变化
+        window.addEventListener('scroll', updateOverlayPosition);
+        window.addEventListener('resize', updateOverlayPosition);
+
+        setInterval(updateLength, 250);
+    })();
 </script>
 
 <script>
