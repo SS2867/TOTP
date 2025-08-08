@@ -201,8 +201,11 @@
     </div>
     <div style="height: 10px;"></div>
     <div class="totp_container" style="display: flex; align-items: center; justify-content: center;">
-        <button class="bottom_button" id="time_adjustment_backward" title="Locate to Previous Code" style="transform: translate(-90px, -29px)" onclick="toggleTimeAdjustmentBackward()"><</button>
-        <button class="bottom_button" id="time_adjustment_forward" title="Locate to Next Code" style="transform: translate(+90px, -29px)" onclick="toggleTimeAdjustmentForward()">></button>
+        <button class="bottom_button" id="totp_visibility_button" title="Show/Hide Code" style="position:absolute; transform: translate(-150px, -29px)" onclick="toggleTOTPVisibility()">👁️</button>
+        <button class="bottom_button" id="time_adjustment_backward" title="Locate to Previous Code" style="position:absolute;transform: translate(-90px, -29px)" onclick="toggleTimeAdjustmentBackward()"><</button>
+        <button class="bottom_button" id="time_adjustment_forward" title="Locate to Next Code" style="position:absolute;transform: translate(+90px, -29px)" onclick="toggleTimeAdjustmentForward()">></button>
+        <button class="bottom_button" id="copy_URL_button" title="Copy Config Embedded URL" style="position:absolute; transform: translate(+150px, -29px)" onclick="copyConfigEmbeddedURL()">🔗</button>
+        
         <span style="width: 85px; transform: translate(-120px, +1px);" class="totp totp_nearby totp_transform pressable" id="totp_prev">------</span>
         <!-- <span style="width: 20px"></span> ◀️▶️ -->
         <span style="width: 170px" class="totp pressable" id="totp">------</span>
@@ -212,7 +215,6 @@
     <div style="height: 25px;"></div>
     <div style="display: flex; font-size: 0.75em; color:#878787; height: 25px;">
         <button class="bottom_button" id="time_adjustment_button" title="Enter Time Locate Mode" style="" onclick="toggleTimeAdjustment()">📌</button>
-        <button class="bottom_button" id="totp_visibility_button" title="Show/Hide Code" style="position:absolute;transform: translate(0, -82px)" onclick="toggleTOTPVisibility()">👁️</button>
     
         <span id="time_display_box" style="" class="pressable bottom_container" onclick="fetchTime()">
             <span class="bottom_content_container">
@@ -511,7 +513,7 @@
         }, true);
 
         document.addEventListener('blur', function(e) {
-            if(hideTimer){delayedHide(900);} else {hideOverlay();}
+            hideOverlay();
         }, true);
 
         // 处理页面滚动和窗口大小变化
@@ -581,11 +583,18 @@
     totp_current = document.getElementById("totp");
     totp_prev = document.getElementById("totp_prev");
     totp_next = document.getElementById("totp_next");
+    seedInput = document.getElementById("seed");
+    passcodeInput = document.getElementById("passcode");
 
     TOTPVisible = true;
     seed = "";
+
+    function cleanSeed(seed){
+        return seed.trim().toUpperCase().replace(/[0189]/g, c => ({0:'O',1:'I',8:'B',9:'Q'})[c])
+    }
+
     function generateTOTP(){
-        let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+        let seed_input = cleanSeed(seedInput.value);
         if (seed_input == ""){seed_input = "F";}
         try{
             const url = new URL(seed_input);
@@ -607,8 +616,8 @@
         seed = "";
         
         function seedInvalid(){
-            document.getElementById("seed").style.color = '#d60808';
-            document.getElementById("seed").classList.add("input_error");
+            seedInput.style.color = '#d60808';
+            seedInput.classList.add("input_error");
         }
 
         try{
@@ -630,8 +639,8 @@
             totp_next.innerText = TOTPVisible||isNaN(totp_next.value) ? totp_next.value : "•".repeat(digits);
             
             if(!isNaN(totp_current.value)){
-                document.getElementById("seed").style.color = '';
-                document.getElementById("seed").classList.remove("input_error");
+                seedInput.style.color = '';
+                seedInput.classList.remove("input_error");
             }
         }
 
@@ -674,6 +683,8 @@
         totp_next.style.transform = `translate(${totpTransWidth}px, 0px)`;
         document.getElementById("time_adjustment_backward").style.transform = `translate(${-0.75*totpTransWidth}px, -29px)`;
         document.getElementById("time_adjustment_forward").style.transform = `translate(${0.75*totpTransWidth}px, -29px)`;
+        document.getElementById("totp_visibility_button").style.transform = `translate(${-1*totpTransWidth-17.5}px, -29px)`;
+        document.getElementById("copy_URL_button").style.transform = `translate(${1*totpTransWidth+17.5}px, -29px)`;
         totp_prev.style.transform = `translate(${-totpTransWidth}px, +1px)`;
 
         totpFontSize = Math.min(1.55, 1.55*8 / digits);
@@ -689,7 +700,7 @@
         if(temp >=0){
 
             if(Object.keys(decryptedTOTPList).length){
-                document.getElementById("passcode").placeholder = `[${temp} blocks left] ` +"•".repeat(passcodeLen);
+                passcodeInput.placeholder = `[${temp} blocks left] ` +"•".repeat(passcodeLen);
             }
             progressBar = document.getElementById("progressBar");
             progressBar.value = (1-Math.floor(epoch % period)/period)*100;
@@ -780,13 +791,12 @@
     passcode = "";
     passcodeLen = 0;
     decryptedTOTPList = {};
-    document.getElementById("passcode").addEventListener('blur', passcodeInputBlur);
-    document.getElementById("passcode").addEventListener("keydown", function(event) {
+    passcodeInput.addEventListener('blur', passcodeInputBlur);
+    passcodeInput.addEventListener("keydown", function(event) {
         if (event.key === "Enter") {passcodeInputBlur(0);}
     });
     passcodeInputBlurLock = false;
     function passcodeInputBlur(timeout1=100){setTimeout(function() {
-        passcodeInput = document.getElementById("passcode");
         inputFunc1 = document.getElementById("input_func1");
         inputFunc2 = document.getElementById("input_func2");
         inputFunc2.onmousedown = function(){clearPasscode()};
@@ -804,7 +814,7 @@
         if (passcodeInput.value){
             passcodeInputBlurLock = true;
 
-            let seed_input = document.getElementById("seed").value.trim().toUpperCase();
+            let seed_input = cleanSeed(seedInput.value);
             if (seed_input == ""){seed_input = "F";}
             let seed = "";
             
@@ -837,21 +847,19 @@
         }
         generateTOTP();
     }, timeout1)}
-    document.getElementById("passcode").addEventListener('input', function() {
+    passcodeInput.addEventListener('input', function() {
         if(passcodeInputBlurLock){return;}
-        passcodeInput = document.getElementById("passcode");
         passcode = encrypt(passcodeInput.value, "haulvnebalIfv"+passcodeSalt);
         passcodeLen = passcode.length;
         decryptedTOTPList = {};
         if(passcode ===""){ passcodeInput.placeholder = "Enter Passcode (if any)"; }
         generateTOTP();
         
-        seedInput = document.getElementById("seed");
         inputFunc1 = document.getElementById("input_func1");
         inputFunc2 = document.getElementById("input_func2");
         inputFunc2.onmousedown = function(){
             try{
-                seed = seedInput.value = encrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+                seed = seedInput.value = encrypt(cleanSeed(seedInput.value), passcodeInput.value, base32chars);
             }catch(error){ 
                 if (error.message.startsWith("Invalid character in plaintext:")){
                     return -1;
@@ -866,7 +874,7 @@
         
         inputFunc1.onmousedown = function(){
             try{
-                seed = seedInput.value = decrypt(seedInput.value.trim().toUpperCase(), passcodeInput.value, base32chars);
+                seed = seedInput.value = decrypt(cleanSeed(seedInput.value), passcodeInput.value, base32chars);
             }catch(error){ 
                 if (error.message.startsWith("Invalid character in ciphertext:")){
                     return -1;
@@ -883,25 +891,27 @@
 
     document.getElementById('digitsValue').addEventListener('mousedown', function() {
         let f = document.getElementById('passcode').value.slice(1);
-        let s = (f=="goo"? "OZZY4NXW4NHTB6BLIPU7JZIW7IDRZS5I" :
-                 (f=="out"? "23IUTFH5ZDPKYBIH5WYJRLVPZIOJV2BD":
-                  (f=="bit"? "QBJLEKDH5SXVCFJLHJ3BPC75DG73OKUE":
-                   (f=="koo"? "MZHVHPMXNROV4GAQJGU2VE2FFZ5AJXUY":
-                    (f=="pcl"? "MIGY3PMB64ZJ6ZB5J2MX5QBFY22F6WGD":
-                     (f=="nut"? "UJW7GTH6MNDWXXHTWSFM3B4AY33VQP5F":
-                      (f=="run"? "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V":
-                       (f=="vul"? "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5": 
-                        (f=="jup"? "6ZKHJOT6FCMEE4VZF434BNNIHQXDEDCZ": null)))))))));
-        if(s){document.getElementById("seed").value = seed = s;}
+        let s = {
+            "goo": "OZZY4NXW4NHTB6BLIPU7JZIW7IDRZS5I",
+            "out": "23IUTFH5ZDPKYBIH5WYJRLVPZIOJV2BD",
+            "bit": "QBJLEKDH5SXVCFJLHJ3BPC75DG73OKUE",
+            "koo": "MZHVHPMXNROV4GAQJGU2VE2FFZ5AJXUY",
+            "pcl": "MIGY3PMB64ZJ6ZB5J2MX5QBFY22F6WGD",
+            "nut": "UJW7GTH6MNDWXXHTWSFM3B4AY33VQP5F",
+            "run": "HKLIQQX4TNOMNVBC2HANMXH2R4OCML3V",
+            "vul": "YXUXLAXAP2D6H4XLN4CCCNKE7NZWSPU5",
+            "jup": "6ZKHJOT6FCMEE4VZF434BNNIHQXDEDCZ",
+        };
+        if(s[f]){seedInput.value = seed = s[f];}
     });
 
-    document.getElementById("seed").addEventListener('input', function() {
+    seedInput.addEventListener('input', function() {
         clearPasscode();
         generateTOTP();
     });
     
-    document.getElementById("seed").addEventListener('blur', function(){
-        if(seed && seed!="F"){document.getElementById("seed").value = seed;}
+    seedInput.addEventListener('blur', function(){
+        if(seed && seed!="F"){seedInput.value = seed;}
     })
 
     digits = 6;
@@ -933,13 +943,12 @@
     
 
     function toggleSeedVisibility(){
-        seedInput = document.getElementById("seed");
         seedInput.type = (seedInput.type=="text"? "password": "text");
     }
     function clearPasscode(){
         passcode = "";
-        document.getElementById("passcode").placeholder = "Enter Passcode (if any)";
-        document.getElementById("passcode").value="";
+        passcodeInput.placeholder = "Enter Passcode (if any)";
+        passcodeInput.value="";
         document.getElementById("input_func2").disabled=true;
         decryptedTOTPList = {};
         generateTOTP();
@@ -948,6 +957,17 @@
         TOTPVisible = TOTPVisible? false:true;
         generateTOTP();
     }
+    function copyConfigEmbeddedURL(){
+        const params = new URLSearchParams({
+            secret: seedInput.value,
+            digits: digits,
+            period: period,
+        });
+        const location = window.location.origin + window.location.pathname + "#" + params.toString() ;
+        window.location.href = location;
+        navigator.clipboard.writeText(location);
+    }
+
     timeAdjusted = -1;
     timeZone = new Date().getTimezoneOffset()/-60;
     function calcTimeAdjusted(){
@@ -1038,7 +1058,7 @@
     }
 
     const urlParams = new URLSearchParams(window.location.hash.substring(1));
-    document.getElementById("seed").value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
+    seedInput.value = urlParams.get('secret')? urlParams.get('secret'): "UXCJ42SRKONY7FOWTWLPZCTVZJB23ILB";
     value = parseInt(urlParams.get('digits'));
     if(!isNaN(value) && value>=4 && value <= 10) {
         digits = value;
